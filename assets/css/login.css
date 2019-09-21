@@ -1,0 +1,179 @@
+/*
+* Login Styles
+*/
+
+@font-face {
+    font-family: 'Montserrat';
+    src: url(../fonts/Montserrat-Light.ttf);
+    src: url(../fonts/Montserrat-Bold.ttf);
+    src: url(../fonts/Montserrat-Medium.ttf);
+}
+
+.containerLogin {
+    font-family: 'Montserrat', sans-serif;
+    max-width: 1300px;
+    padding: 60px;
+    margin: auto;
+    margin-top: 20px;
+}
+
+.uminks {
+    position: absolute;
+    width: 110px;
+    top: 0;
+    left: 0;
+}
+
+.sectionTabs {
+    flex-direction: column;
+}
+
+.loginUrl {
+    text-decoration: none !important;
+}
+
+.nav-item {
+    line-height: 2;
+    text-align: center;
+}
+
+.formSection {
+    padding: 1.5em;
+}
+
+.btn-primary {
+    background-color: #CC58A6;
+    border-color: #CC58A6;
+}
+
+.sectionTabs a {
+    color: #CC58A6;
+}
+
+.sectionTabs a:hover {
+    color: #CC70A6;
+}
+
+.btn-primary:hover,
+.btn-primary:active {
+    background-color: #CC70A6 !important;
+    border-color: #CC70A6 !important;
+}
+
+.figure {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 70% 75%, 35% 100%, 50% 75%, 0% 75%);
+    display: flex;
+    top: calc(0px - 30px);
+    right: 30px;
+    position: absolute;
+    border-radius: 25px;
+    width: 60%;
+    flex-direction: column;
+    height: calc(220px);
+    background: #CC70A6;
+    padding: 30px;
+    align-items: flex-end;
+    z-index: 1;
+}
+
+.footer {
+    background: #333;
+    color: #ddd;
+    padding: 1em;
+    text-align: center;
+    bottom: 0;
+    width: 100%;
+}
+
+.titleLogin {
+    font-family: 'Montserrat', sans-serif;
+    color: #fff;
+    font-size: 32px;
+}
+
+.imageLogin {
+    position: relative;
+    width: 500px;
+    height: 500px;
+}
+
+.formContainer {
+    -webkit-box-shadow: 4px 4px 7px 2px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow: 4px 4px 7px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 4px 4px 7px 2px rgba(0, 0, 0, 0.5);
+    background: #fff;
+    border-radius: 5px;
+    padding: 1.5em;
+}
+
+/*
+* Tablet Styles
+*/
+@media screen and (max-width: 1200px) {
+    .titleLogin {
+        font-size: 24px;
+    }
+}
+
+
+/*
+* Mobile Styles
+*/
+@media screen and (max-width: 768px) {
+
+    .containerLogin {
+        padding: 10px;
+    }
+
+    .imageLogin {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+    }
+
+    .titleLogin {
+        font-size: 18px;
+    }
+
+    .figureRow {
+        justify-content: center;
+        margin: 2em 0;
+    }
+
+    .figure {
+        padding: 15px;
+        height: calc(170px);
+        position: relative;
+        top: 0;
+        width: 65%;
+        left: 50px;
+    }
+
+    .uminks {
+        position: relative;
+    }
+
+    .logoRow {
+        justify-content: center;
+    }
+
+    .containerLogin {
+        font-size: 13px;
+    }
+
+    .sectionTabs li {
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .formContainer {
+        padding: 10px;
+    }
+
+    .formCol {
+        margin: 2em 0px;
+    }
+
+
+
+}
