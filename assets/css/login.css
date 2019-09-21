@@ -63,13 +63,13 @@
 .figure {
     clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 70% 75%, 35% 100%, 50% 75%, 0% 75%);
     display: flex;
-    top: calc(0px - 30px);
+    top: calc(0px - 40px);
     right: 30px;
     position: absolute;
     border-radius: 25px;
     width: 60%;
     flex-direction: column;
-    height: calc(220px);
+    height: calc(265px);
     background: #CC70A6;
     padding: 30px;
     align-items: flex-end;
@@ -106,12 +106,103 @@
     padding: 1.5em;
 }
 
+.utalk {
+    -webkit-animation: heartbeat 1.5s ease-in-out infinite both;
+    display: inline-block;
+    font-weight: bold;
+    font-size: 36px;
+    animation: heartbeat 1.5s ease-in-out infinite both;
+}
+
+@-webkit-keyframes heartbeat {
+    from {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        -webkit-transform-origin: center center;
+        transform-origin: center center;
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+
+    10% {
+        -webkit-transform: scale(0.91);
+        transform: scale(0.91);
+        -webkit-animation-timing-function: ease-in;
+        animation-timing-function: ease-in;
+    }
+
+    17% {
+        -webkit-transform: scale(0.98);
+        transform: scale(0.98);
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+
+    33% {
+        -webkit-transform: scale(0.87);
+        transform: scale(0.87);
+        -webkit-animation-timing-function: ease-in;
+        animation-timing-function: ease-in;
+    }
+
+    45% {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+}
+
+@keyframes heartbeat {
+    from {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        -webkit-transform-origin: center center;
+        transform-origin: center center;
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+
+    10% {
+        -webkit-transform: scale(0.91);
+        transform: scale(0.91);
+        -webkit-animation-timing-function: ease-in;
+        animation-timing-function: ease-in;
+    }
+
+    17% {
+        -webkit-transform: scale(0.98);
+        transform: scale(0.98);
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+
+    33% {
+        -webkit-transform: scale(0.87);
+        transform: scale(0.87);
+        -webkit-animation-timing-function: ease-in;
+        animation-timing-function: ease-in;
+    }
+
+    45% {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        -webkit-animation-timing-function: ease-out;
+        animation-timing-function: ease-out;
+    }
+}
+
 /*
 * Tablet Styles
 */
 @media screen and (max-width: 1200px) {
     .titleLogin {
         font-size: 24px;
+    }
+
+    .figure {
+        right: 0px;
+        width: 70%;
     }
 }
 
@@ -137,12 +228,12 @@
 
     .figureRow {
         justify-content: center;
-        margin: 2em 0;
+        margin: 3em 0;
     }
 
     .figure {
-        padding: 15px;
-        height: calc(170px);
+        padding: 10px;
+        height: calc(150px);
         position: relative;
         top: 0;
         width: 65%;
@@ -174,6 +265,15 @@
         margin: 2em 0px;
     }
 
+    .utalk {
+        font-size: 18px;
+    }
 
 
+}
+
+@media screen and (max-width: 400px) {
+    .figure {
+        height: calc(200px);
+    }
 }

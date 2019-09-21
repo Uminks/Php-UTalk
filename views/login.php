@@ -15,7 +15,7 @@
                     <div class="row figureRow">
 
                     <div class="figure">
-                        <h1 class="titleLogin"> Bienvenido a UTalk, que esperas para charlar con los tuyos! </h1>
+                        <div class="titleLogin"> Bienvenido a <div class="utalk">UTalk</div>, que esperas para charlar con los tuyos! </div>
                     </div>
 
                     <img class="imageLogin" src="../assets/images/people3.png" alt="peopleLogin">
@@ -65,38 +65,38 @@
                             <form action="">
 
                                 <div class="form-group">
-                                    <label for="user">Nombre</label>
-                                    <input type="text" class="form-control form-control-sm" id="user" placeholder="Email o usuario" required>
+                                    <label for="name">Nombre</label>
+                                    <input type="text" class="form-control form-control-sm" id="name" placeholder="Nombre" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="user">Apellido</label>
-                                    <input type="text" class="form-control form-control-sm" id="user" placeholder="Email o usuario" required>
+                                    <label for="last-name">Apellido</label>
+                                    <input type="text" class="form-control form-control-sm" id="last-name" placeholder="Apellido" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="user">Nombre de usuario</label>
-                                    <input type="text" class="form-control form-control-sm" id="user" placeholder="Email o usuario" required>
+                                    <label for="username">Nombre de usuario</label>
+                                    <input type="text" class="form-control form-control-sm" id="username" placeholder="Usuario" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="user">Contraseña</label>
+                                    <label for="password">Contraseña</label>
                                     <input type="password" class="form-control form-control-sm" id="password" placeholder="Contraseña" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="user">Email</label>
-                                    <input type="text" class="form-control form-control-sm" id="user" placeholder="Email o usuario" required>
+                                    <label for="email">Email</label>
+                                    <input type="text" class="form-control form-control-sm" id="email" placeholder="Email" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="user">Fecha de nacimiento</label>
-                                    <input type="date" class="form-control form-control-sm" id="user" placeholder="Email o usuario" required>
+                                    <label for="date">Fecha de nacimiento</label>
+                                    <input type="date" class="form-control form-control-sm" id="date" placeholder="Fecha de nacimiento" required>
                                 </div>
 
                                 <div class="form-group">
 
-                                    <label for="user"> Sexo </label>
+                                    <label for="gender"> Sexo </label>
 
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="gender" id="male" value="male" checked>
@@ -116,6 +116,9 @@
                                             Prefiero no decirlo
                                         </label>
                                     </div>
+
+                                    <small id="help" class="form-text text-muted">No revelaremos tu información con alguien más.</small>
+
 
                                 </div>
 
