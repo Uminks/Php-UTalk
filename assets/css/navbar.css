@@ -160,3 +160,47 @@ ul.navbar-nav.ml-auto.mt-2.mt-lg-0 li a {
         margin-left: -15rem;
     }
 }
+
+
+/*
+* Modal
+*/
+
+.addImage {
+    width: 80px;
+}
+
+.addImage:hover {
+    cursor: pointer;
+}
+
+.state-choice {
+    width: 12px;
+    align-self: center;
+    height: 12px;
+    margin-left: 8px;
+    border-radius: 50%;
+}
+
+.status-list {
+    padding: 0 20px;
+    padding-bottom: 15px;
+}
+
+.status-ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.status-ul li:hover {
+    background: #efefef;
+}
+
+.status-ul li a {
+    display: flex;
+    text-decoration: none;
+    color: #444;
+    border-bottom: 1px solid #ccc;
+    padding: 10px;
+}

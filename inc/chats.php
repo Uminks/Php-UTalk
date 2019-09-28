@@ -7,20 +7,54 @@
         <div class="people-list" id="people-list">
 
           <div class="search">
-          
+            <div class="form-group has-search">
+              <span class="fa fa-search form-control-feedback"> </span>
+              <input type="text" class="form-control search-list" placeholder="Buscar...">
+            </div>
           </div>
 
           <div class="people">
 
-            <ul>
+            <ul class="list">
               <li>
-                <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil">
-                <h2> Nombre </h2>
+                <img src="../assets/images/people2.png" alt="sunil">
+                <div class="content-chat">
+                  <div class="info-content">
+                    <h2 class="top-content"> Luis Fernando Vargas Gomez </h2>
+                    <span> 11:30 am </span>
+                  </div>
+                  
+                  <p class="message-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
+                </div>
+                
               
               </li>
-              <li></li>
-              <li></li>
-              <li></li>
+              <li>
+                <img src="../assets/images/people2.png" alt="sunil">
+                <div class="content-chat">
+                  <div class="info-content">
+                    <h2 class="top-content"> Brayan Bladimir Montañez Ortiz </h2>
+                    <span> 1:30 am </span>
+                  </div>
+                  
+                  <p class="message-content"> <span class="alert-message">2</span> Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
+                </div>
+                
+              
+              </li>
+              <li>
+                <img src="../assets/images/people2.png" alt="sunil">
+                <div class="content-chat">
+                  <div class="info-content">
+                    <h2 class="top-content">  Maria Bolivar </h2>
+                    <span> 3:30 pm </span>
+                  </div>
+                  
+                  <p class="message-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
+                </div>
+                
+              
+              </li>
             </ul>
           
           </div>
@@ -28,50 +62,76 @@
         </div>
 
         <div class="messaging">
-          <div class="inbox_msg">
+            <div class="inbox_msg">
 
-            <div class="mesgs">
-              <div class="msg_history">
-                <div class="incoming_msg">
-                  <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
-                  <div class="received_msg">
-                    <div class="received_withd_msg">
-                      <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
-                      <span class="time_date"> 11:01 AM    |    June 9</span></div>
+              <div class="mesgs">
+                <div class="msg_history">
+
+                  <div class="incoming_msg">
+                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="received_msg">
+                      <div class="received_withd_msg">
+                        <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
+                        <span class="time_date"> 11:01 AM    |    June 9</span></div>
+                    </div>
                   </div>
-                </div>
-                <div class="outgoing_msg">
-                  <div class="sent_msg">
-                    <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.</p>
-                    <span class="time_date"> 11:01 AM    |    June 9</span> </div>
-                </div>
-                <div class="incoming_msg">
-                  <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
-                  <div class="received_msg">
-                    <div class="received_withd_msg">
-                      <p>Test, which is a new approach to have</p>
-                      <span class="time_date"> 11:01 AM    |    Yesterday</span></div>
+
+
+                  <div class="outgoing_msg">
+                    <div class="sent_msg">
+                      <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.</p>
+                      <span class="time_date"> 11:01 AM    |    June 9</span> 
+                    </div>
                   </div>
-                </div>
-                <div class="outgoing_msg">
-                  <div class="sent_msg">
-                    <p>Apollo University, Delhi, India Test</p>
-                    <span class="time_date"> 11:01 AM    |    Today</span> </div>
-                </div>
-                <div class="incoming_msg">
-                  <div class="incoming_msg_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
-                  <div class="received_msg">
-                    <div class="received_withd_msg">
-                      <p>We work directly with our designers and suppliers,
-                        and sell direct to you, which means quality, exclusive
-                        products, at a price anyone can afford.</p>
-                      <span class="time_date"> 11:01 AM    |    Today</span></div>
+
+
+
+                  <div class="incoming_msg">
+                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="received_msg">
+                      <div class="received_withd_msg">
+                        <p>Test, which is a new approach to have</p>
+                        <span class="time_date"> 11:01 AM    |    Yesterday</span>
+                      </div>
+                    </div>
                   </div>
+
+
+
+                  <div class="outgoing_msg">
+                    <div class="sent_msg">
+                      <p>Apollo University, Delhi, India Test</p>
+                      <span class="time_date"> 11:01 AM    |    Today</span> 
+                    </div>
+                  </div>
+
+
+                  <div class="incoming_msg">
+                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="received_msg">
+                      <div class="received_withd_msg">
+                        <p>We work directly with our designers and suppliers,
+                          and sell direct to you, which means quality, exclusive
+                          products, at a price anyone can afford.</p>
+                        <span class="time_date"> 11:01 AM    |    Today</span></div>
+                    </div>
+                  </div> 
+
                 </div>
               </div>
 
             </div>
-          </div>
+
+            <div class="user-chat">
+               <textarea data-emoji-input="unicode" data-emojiable="true" name="text-chat" id="text-chat" class="text-chat" cols="30" rows="3"></textarea>
+               <div class="send-section">
+                  <button class="send">Enviar</button>
+                  <div>
+                    <div> <img src="" alt=""> <span>Emojis</span> </div>
+                    <div> <img src="" alt=""> <span>Imagenes</span> </div>
+                  </div>
+               </div>
+            </div>
         </div>
   
   

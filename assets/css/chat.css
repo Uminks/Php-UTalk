@@ -123,7 +123,7 @@ img {
 
 .mesgs {
     float: left;
-    padding: 40px;
+    padding: 20px 20px;
 }
 
 .sent_msg p {
@@ -177,11 +177,13 @@ img {
 
 .messaging {
     background: #fff;
+    width: 75%;
 }
 
 .msg_history {
-    max-height: 516px;
+    max-height: 65vh;
     overflow-y: auto;
+    padding-right: 10px;
 }
 
 .credit {
@@ -198,8 +200,131 @@ img {
 
 .chatContainer {
     display: flex;
+    padding: 20px;
 }
 
 /*
 * People List
 */
+
+.people-list {
+    width: 25%;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+    margin: 0;
+}
+
+.list li {
+    display: flex;
+    padding: 12px 2px;
+    border-top: 1px solid #ccc
+}
+
+.list li:hover {
+    background: #efefef;
+    cursor: pointer;
+}
+
+.content-chat {
+    display: flex;
+    flex-direction: column;
+    padding: 3px;
+    margin-left: 6px;
+    width: 75%;
+}
+
+.top-content {
+    font-size: 16px;
+    margin: 0;
+    width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-content {
+    display: flex;
+    justify-content: space-between;
+}
+
+.info-content span {
+    font-size: 12px;
+    align-self: flex-end;
+    color: #aaa;
+}
+
+.message-content {
+    margin: 0;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: #777;
+}
+
+.list li img {
+    width: 45px;
+    border-radius: 50%;
+}
+
+.has-search {
+    margin: 0;
+    padding: 8px;
+    border-top: 1px solid #ccc
+}
+
+.search-list {
+    font-size: 14px;
+    color: #999;
+}
+
+.alert-message {
+    background: coral;
+    padding: 1px 4px;
+    border-radius: 50%;
+    color: white;
+    font-size: 10px;
+}
+
+.search-list:focus {
+    color: #999;
+}
+
+#text-chat {
+    width: 80%;
+    padding: 8px;
+    font-size: 13px;
+    color: #888;
+    border-top: none;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    resize: none;
+}
+
+.send-section {
+    width: 20%;
+}
+
+.send {
+    width: 100%;
+    height: 50px;
+    background: rgb(40, 74, 153);
+    outline: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+}
+
+.send:hover {
+    opacity: 0.85;
+}
+
+.user-chat {
+    display: flex;
+}
