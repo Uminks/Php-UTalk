@@ -123,12 +123,16 @@
             </div>
 
             <div class="user-chat">
-               <textarea data-emoji-input="unicode" data-emojiable="true" name="text-chat" id="text-chat" class="text-chat" cols="30" rows="3"></textarea>
+               <textarea  name="text-chat" id="text-chat" class="text-chat" cols="30" rows="3"></textarea>
                <div class="send-section">
-                  <button class="send">Enviar</button>
-                  <div>
-                    <div> <img src="" alt=""> <span>Emojis</span> </div>
-                    <div> <img src="" alt=""> <span>Imagenes</span> </div>
+                  <button class="send">Enviar <img class="sendIcon" src="../assets/svg/send.svg" alt=""></button>
+                  <div class="button-wrapper">
+                    <span class="label">
+                      Subir imagen <img class="sendIcon" src="../assets/svg/image.svg" alt="image">
+                    </span>
+                    
+                      <input type="file" name="upload" id="upload" class="upload-box" placeholder="Upload File">
+                    
                   </div>
                </div>
             </div>

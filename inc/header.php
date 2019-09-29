@@ -71,7 +71,7 @@
               </div>
               <div class="form-group">
                   <label for="password">Contraseña</label>
-                  <input type="password" disabled class="form-control form-control-sm" id="password" placeholder="Contraseña" required>
+                  <input type="password" disabled class="form-control form-control-sm" id="passwordRenove" placeholder="Contraseña" required>
               </div>
               <div class="form-group">
                   <label for="password">Nueva contraseña</label>
