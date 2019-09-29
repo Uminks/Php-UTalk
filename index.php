@@ -1,10 +1,10 @@
-<!-- Head -->   
+<!-- Head -->  
+<?php require_once "controllers/RoutesController.php"; ?>
 <?php include 'inc/head.php'; ?>
 
-    <?php
-
-        header("Location: views/login.php");
-
+    <?php 
+        $mvc = new RouteController();
+        $mvc->linkPagesController();
     ?>
 
 <!-- Footer -->   
