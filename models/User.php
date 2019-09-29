@@ -59,4 +59,13 @@ class User extends Conexion {
 
     }
 
+    #BUSQUEDA DE USUARIO 
+    #------------------------------------
+    public static function searchUsersModel($data, $tabla) {
+        $stmt = Conexion::conectar()->prepare("SELECT id, first_name, last_name, username FROM $tabla WHERE username LIKE '%$data%'");
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
 }

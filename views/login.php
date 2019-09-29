@@ -1,3 +1,9 @@
+<?php
+  session_start();
+  if ( isset ( $_SESSION["user_information"] ) ) {
+    header("location: /chat");
+  }
+?>
 <!-- Head -->   
 
     <div class="container-fluid">

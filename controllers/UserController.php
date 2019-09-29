@@ -1,12 +1,14 @@
 <?php
 
 
-require_once "models/User.php";
+require_once "../models/User.php";
 
 class UserController {
 
     const REGISTER = "register";
     const LOGIN = "login";
+    const UPDATE = "update";
+    const SEARCH_USERS = "search";  
 
     public function initContent ( $task ) {
 
@@ -19,18 +21,25 @@ class UserController {
             }
             case self::LOGIN : {
                 $this->loginUserController();
+                break;
+            }
+            case self::UPDATE : {
+                break;
+            }
+            case self::SEARCH_USERS : {
+                echo json_encode( $this->searchUsersController() );
+                break;
             }
         }
     }
     
-    public function registerUserController(){
+    public function registerUserController () {
 
 		if( isset($_POST["registerData"]) ){
             $respuesta = User::registerUserModel($_POST["registerData"], "users");
 					
             if( $respuesta=="success" ) {
-                #INICIAR SESION
-                header("location: /chat");
+                header("location: /?success");
             }
             else{
                 header("location: /?error");
@@ -47,6 +56,8 @@ class UserController {
 
             if (count($response["username"]) > 0) {
                 #INICIAR SESION
+                session_start();
+                $_SESSION["user_information"] = $response;
                 header("location: /chat");
             }
             else {
@@ -55,7 +66,7 @@ class UserController {
         }
     }
 
-    public function validateUserController(){
+    public function validateUserController () {
 
         if( isset($_POST["registerData"]) ) {
             $data = $_POST["registerData"];
@@ -72,7 +83,13 @@ class UserController {
             header("location: /");
         }
 
-	}
+    }
+    
+    private function searchUsersController () {
+        $name = $_GET["keyword"];
+        $response = User::searchUsersModel($name, "users");
+        return $response;
+    }
 
 }
 
