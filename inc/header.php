@@ -1,6 +1,6 @@
 
       <nav class="navbar navbar-expand-lg navbar-light bgCustomReverse">
-        <button class="svgButton" id="menu-toggle"> <img src="../assets/svg/invisible.svg" alt="visible"> </button>
+        <button class="svgButton" id="menu-toggle"> <img src="assets/svg/invisible.svg" alt="visible"> </button>
 
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -10,7 +10,7 @@
           <ul class="navbar-nav ml-auto mt-2 mt-lg-0">
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle setting" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Tu cuenta <img class="settingsIcon" src="../assets/svg/settings.svg" alt="settings">
+                Tu cuenta <img class="settingsIcon" src="assets/svg/settings.svg" alt="settings">
               </a>
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
                 <a class="dropdown-item setItem" href="#"  data-toggle="modal"  data-target="#status-update">
@@ -46,7 +46,7 @@
   
               <div class="file-field">
                 <div class="text-center">
-                  <img class="addImage" src="../assets/images/people2.png"
+                  <img class="addImage" src="assets/images/people2.png"
                     class="rounded-circle z-depth-1-half avatar-pic" alt="example placeholder avatar">
                 </div>
                 <div class="d-flex justify-content-center">

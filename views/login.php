@@ -8,7 +8,7 @@
                 
 
                     <div class="row logoRow">
-                        <img class="uminks" src="../assets/images/uminks.png" alt="Uminks">
+                        <img class="uminks" src="assets/images/uminks.png" alt="Uminks">
                     </div>
 
                     <div class="row figureRow">
@@ -17,7 +17,7 @@
                         <div class="titleLogin"> Bienvenido a <div class="utalk">UTalk</div>, que esperas para charlar con los tuyos! </div>
                     </div>
 
-                    <img class="imageLogin" src="../assets/images/people3.png" alt="peopleLogin">
+                    <img class="imageLogin" src="assets/images/people3.png" alt="peopleLogin">
                     
                         
 

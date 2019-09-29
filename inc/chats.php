@@ -17,7 +17,7 @@
 
             <ul class="list">
               <li>
-                <img src="../assets/images/people2.png" alt="sunil">
+                <img src="assets/images/people2.png" alt="sunil">
                 <div class="content-chat">
                   <div class="info-content">
                     <h2 class="top-content"> Luis Fernando Vargas Gomez </h2>
@@ -30,7 +30,7 @@
               
               </li>
               <li>
-                <img src="../assets/images/people2.png" alt="sunil">
+                <img src="assets/images/people2.png" alt="sunil">
                 <div class="content-chat">
                   <div class="info-content">
                     <h2 class="top-content"> Brayan Bladimir Montañez Ortiz </h2>
@@ -43,7 +43,7 @@
               
               </li>
               <li>
-                <img src="../assets/images/people2.png" alt="sunil">
+                <img src="assets/images/people2.png" alt="sunil">
                 <div class="content-chat">
                   <div class="info-content">
                     <h2 class="top-content">  Maria Bolivar </h2>
@@ -68,7 +68,7 @@
                 <div class="msg_history">
 
                   <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
                     <div class="received_msg">
                       <div class="received_withd_msg">
                         <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
@@ -87,7 +87,7 @@
 
 
                   <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
                     <div class="received_msg">
                       <div class="received_withd_msg">
                         <p>Test, which is a new approach to have</p>
@@ -107,7 +107,7 @@
 
 
                   <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="../assets/images/people2.png" alt="sunil"> </div>
+                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
                     <div class="received_msg">
                       <div class="received_withd_msg">
                         <p>We work directly with our designers and suppliers,
@@ -125,10 +125,10 @@
             <div class="user-chat">
                <textarea  name="text-chat" id="text-chat" class="text-chat" cols="30" rows="3"></textarea>
                <div class="send-section">
-                  <button class="send">Enviar <img class="sendIcon" src="../assets/svg/send.svg" alt=""></button>
+                  <button class="send">Enviar <img class="sendIcon" src="assets/svg/send.svg" alt=""></button>
                   <div class="button-wrapper">
                     <span class="label">
-                      Subir imagen <img class="sendIcon" src="../assets/svg/image.svg" alt="image">
+                      Subir imagen <img class="sendIcon" src="assets/svg/image.svg" alt="image">
                     </span>
                     
                       <input type="file" name="upload" id="upload" class="upload-box" placeholder="Upload File">

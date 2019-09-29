@@ -7,12 +7,12 @@
             <ul class="add-list">
                 <li class="contact">
                     <div class="left-info">
-                        <img class="image-contact" src="../assets/images/people2.png" alt="contact image">
+                        <img class="image-contact" src="assets/images/people2.png" alt="contact image">
                         <h2 class="title-contact"> Maria Bolivar Perez <span class="user-contact">(MBPLorem)</span></h2>
                     </div>
                     <div class="options-contact">
-                        <a href="#"> <img src="../assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>
-                        <a href="#"> <img src="../assets/svg/block-friend.svg" title="Bloquear usuario" alt="Bloquear"> </a>
+                        <a href="#"> <img src="assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>
+                        <a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear usuario" alt="Bloquear"> </a>
                     </div>
                 </li>
             </ul>
