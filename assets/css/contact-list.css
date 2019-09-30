@@ -67,3 +67,7 @@
     width: 20px;
     margin: 0 9px;
 }
+
+.deleteFriend {
+    cursor: pointer;
+}

@@ -35,7 +35,8 @@ function cuteHide(el) {
   });
 
 //Eliminar Contactos animacion
-  $('.deleteFriend').on('click', function(){
+  $('.deleteFriend').on('click', function(e){
+    e.preventDefault();
     var el = $(this).closest('.contact');
     $("#confirmDelete").modal('show');
 
