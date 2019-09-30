@@ -10,6 +10,8 @@ class UserController {
     const UPDATE = "update";
     const SEARCH_USERS = "search"; 
     const FRIEND_REQUEST = "friend_request";  
+    const UPDATE_STATUS = "update_status";
+    const LOGOUT = "logout";
 
     public function initContent ( $task ) {
 
@@ -33,6 +35,14 @@ class UserController {
             }
             case self::FRIEND_REQUEST : {
                 $this->sendFriendRequestController();
+                break;
+            }
+            case self::UPDATE_STATUS : {
+                $this->setUserStatus();
+                break;
+            }
+            case self::LOGOUT : {
+                $this->logoutUserController();
                 break;
             }
         }
@@ -103,6 +113,29 @@ class UserController {
         $response = User::sendFriendRequestModel( $data, "friend_requests" );
         return $response;
     }
+
+    private function setUserStatus() {
+        session_start();
+        $data = [ "username" => $_SESSION["user_information"]["username"], "connection_status" =>  $_POST["connection_status"] ];
+        $reponse = User::updateUserStatus($data, "users");
+
+        $_SESSION["user_information"]["connection_status"] = $_POST["connection_status"];
+   
+        return $response;
+    }
+
+    private function logoutUserController() {
+
+        session_start();
+        if(isset($_SESSION["user_information"])){
+            $_SESSION["user_information"] = null;
+        } 
+        session_destroy();
+        
+        header("location: /");
+    }
+
+
 }
 
 $user_controller = new UserController();

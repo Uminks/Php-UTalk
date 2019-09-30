@@ -104,19 +104,19 @@
                                     <label for="gender"> Sexo </label>
 
                                     <div class="form-check">
-                                        <input name="registerData[sex]" class="form-check-input" type="radio" name="gender" id="male" value="male" checked>
+                                        <input name="registerData[gender]" class="form-check-input" type="radio" name="gender" id="male" value="male" checked>
                                         <label class="form-check-label" for="gender">
                                             Hombre
                                         </label>
                                     </div>
                                     <div class="form-check">
-                                        <input name="registerData[sex]" class="form-check-input" type="radio" name="gender" id="female" value="female">
+                                        <input name="registerData[gender]" class="form-check-input" type="radio" name="gender" id="female" value="female">
                                         <label class="form-check-label" for="gender">
                                             Mujer
                                         </label>
                                     </div>
                                     <div class="form-check">
-                                        <input name="registerData[sex]" class="form-check-input" type="radio" name="gender" id="other" value="other">
+                                        <input name="registerData[gender]" class="form-check-input" type="radio" name="gender" id="other" value="other">
                                         <label class="form-check-label" for="gender">
                                             Prefiero no decirlo
                                         </label>

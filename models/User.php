@@ -10,13 +10,13 @@ class User extends Conexion {
     #-------------------------------------
     public static function registerUserModel($data, $tabla){
 
-        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla (first_name, last_name, username, password, sex, date, email) VALUES (:first_name, :last_name, :username, :password, :sex, :date, :email)");	
+        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla (first_name, last_name, username, password, gender, date, email) VALUES (:first_name, :last_name, :username, :password, :gender, :date, :email)");	
 
         $stmt->bindParam(":first_name", $data["first_name"], PDO::PARAM_STR);
         $stmt->bindParam(":last_name", $data["last_name"], PDO::PARAM_STR);
         $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
         $stmt->bindParam(":password", $data["password"], PDO::PARAM_STR);
-        $stmt->bindParam(":sex", $data["sex"], PDO::PARAM_STR);
+        $stmt->bindParam(":gender", $data["gender"], PDO::PARAM_STR);
         $stmt->bindParam(":date", $data["date"], PDO::PARAM_STR);
         $stmt->bindParam(":email", $data["email"], PDO::PARAM_STR);
 
@@ -77,5 +77,20 @@ class User extends Conexion {
         else{
             echo "error";
         }
-    }
+    } 
+
+    #ACTUALIZANDO ESTADO
+    #------------------------------------ 
+    public static function updateUserStatus($data, $tabla) {
+        $stmt = Conexion::conectar()->prepare("UPDATE $tabla SET connection_status = :connection_status WHERE username = :username");
+        $stmt->bindParam(":connection_status", $data["connection_status"], PDO::PARAM_INT);
+        $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
+
+        if( $stmt->execute() ){
+            echo "success";
+        }
+        else{
+            echo "error";
+        }
+    } 
 }

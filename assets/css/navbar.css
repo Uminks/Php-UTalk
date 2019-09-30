@@ -26,7 +26,6 @@
 
 .state {
     width: 16px;
-    fill: green;
 }
 
 #sidebar-wrapper .sidebar-heading {
@@ -35,6 +34,7 @@
     justify-content: center;
     display: flex;
     align-items: center;
+    text-align: center;
 }
 
 .list-group-flush .list-group-item {

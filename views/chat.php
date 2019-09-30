@@ -6,6 +6,8 @@
 ?>
 <!-- Head -->   
 
+
+
   <div class="d-flex" id="wrapper">
 
     <!-- Sidebar -->
@@ -22,7 +24,7 @@
 
         <!-- Chats -->  
         <?php include 'inc/chats.php' ?>
-            
+        
         <!-- Contactos --> 
         <?php include 'inc/friends.php' ?>
             

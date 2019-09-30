@@ -15,13 +15,13 @@
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
                 <a class="dropdown-item setItem" href="#"  data-toggle="modal"  data-target="#status-update">
                 Estado
-                <svg class="state" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="#000000">
+                <svg class="state" id="stateBullet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="<?php echo colorState($_SESSION["user_information"]["connection_status"]);  ?>">
                   <path d="M 12 2 C 6.48 2 2 6.48 2 12 C 2 17.52 6.48 22 12 22 C 17.52 22 22 17.52 22 12 C 22 6.48 17.52 2 12 2 z M 12 4 C 16.41 4 20 7.59 20 12 C 20 16.41 16.41 20 12 20 C 7.59 20 4 16.41 4 12 C 4 7.59 7.59 4 12 4 z M 12 6 C 8.69 6 6 8.69 6 12 C 6 15.31 8.69 18 12 18 C 15.31 18 18 15.31 18 12 C 18 8.69 15.31 6 12 6 z"/>
                 </svg>
                 </a> 
                 <a class="dropdown-item setItem" href="#" data-toggle="modal" data-target="#perfil-settings">Perfil</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item setItem" href="#">Salir</a>
+                <a class="dropdown-item setItem" href="controllers/UserController.php?task=logout" >Salir</a>
               </div>
             </li>
           </ul>
@@ -106,13 +106,44 @@
         <div class="modal-body">
           <div class="status-list">
               <ul class="status-ul">
-                <li><a href="">Disponible <span class="state-choice" style="background: green;"></span></a></li>
-                <li><a href="">Ausente <span class="state-choice" style="background: orange;"></span></a></li>
-                <li><a href="">Ocupado <span class="state-choice" style="background: darkred;"></span></a></li>
-                <li><a href="">Desconectado <span class="state-choice" style="background: lightgray;"></span></a></li>
+                <li><a href="javascript:updateUserStatus(0)">Disponible <span class="state-choice" style="background: green;"></span></a></li>
+                <li><a href="javascript:updateUserStatus(1)">Ausente <span class="state-choice" style="background: orange;"></span></a></li>
+                <li><a href="javascript:updateUserStatus(2)">Ocupado <span class="state-choice" style="background: darkred;"></span></a></li>
+                <li><a href="javascript:updateUserStatus(3)">Desconectado <span class="state-choice" style="background: lightgray;"></span></a></li>
               </ul>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+
+  <?php 
+  
+    function colorState($status) {
+      
+        switch($status){
+          case 0 : {
+            return 'green';
+            break;
+          }
+          case 1 : {
+            return 'orange';
+            break;
+          }
+          case 2 : {
+            return 'darkred';
+            break;
+          }
+          case 3 : {
+            return 'lightgray';
+            break;
+          }
+        }
+  
+    }
+  
+  
+  
+  
+  ?>
