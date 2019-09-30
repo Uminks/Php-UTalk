@@ -10,12 +10,13 @@ class User extends Conexion {
     #-------------------------------------
     public static function registerUserModel($data, $tabla){
 
-        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla (first_name, last_name, username, password, date, email) VALUES (:first_name, :last_name, :username, :password, :date, :email)");	
+        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla (first_name, last_name, username, password, sex, date, email) VALUES (:first_name, :last_name, :username, :password, :sex, :date, :email)");	
 
         $stmt->bindParam(":first_name", $data["first_name"], PDO::PARAM_STR);
         $stmt->bindParam(":last_name", $data["last_name"], PDO::PARAM_STR);
         $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
         $stmt->bindParam(":password", $data["password"], PDO::PARAM_STR);
+        $stmt->bindParam(":sex", $data["sex"], PDO::PARAM_STR);
         $stmt->bindParam(":date", $data["date"], PDO::PARAM_STR);
         $stmt->bindParam(":email", $data["email"], PDO::PARAM_STR);
 
