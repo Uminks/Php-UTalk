@@ -1,6 +1,8 @@
 $("#add-contact").change( (e) => {
     $("#add-contact-results").empty();
     let keyword = $("#add-contact").val();
+    if ( keyword.lenght == 0 ) return;
+
     let _data = { 
         task: "search", 
         keyword: keyword
@@ -19,8 +21,7 @@ $("#add-contact").change( (e) => {
                                 '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">' + item["username"] + '</span></h2>' +
                             '</div>' +
                             '<div class="options-contact">' +
-                                '<a onclick="addFriend(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>' +
-                                '<a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear usuario" alt="Bloquear"> </a>' +
+                                '<a onclick="sendFriendRequest(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>' +
                             '</div>' +
                         '</li>';
 
@@ -30,6 +31,17 @@ $("#add-contact").change( (e) => {
 	});
 });
 
-function addFriend (id) {
-    //Another ajax to send request to friend
+function sendFriendRequest (id) {
+    let _data = { 
+        to_user: id
+    };
+
+    $.ajax({
+		url: "controllers/UserController.php?task=friend_request",
+		method: "POST",
+		data: _data,
+		success:function(response){
+            console.log(response);
+		}
+	});
 }

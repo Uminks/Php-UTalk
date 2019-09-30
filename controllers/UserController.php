@@ -8,7 +8,8 @@ class UserController {
     const REGISTER = "register";
     const LOGIN = "login";
     const UPDATE = "update";
-    const SEARCH_USERS = "search";  
+    const SEARCH_USERS = "search"; 
+    const FRIEND_REQUEST = "friend_request";  
 
     public function initContent ( $task ) {
 
@@ -28,6 +29,10 @@ class UserController {
             }
             case self::SEARCH_USERS : {
                 echo json_encode( $this->searchUsersController() );
+                break;
+            }
+            case self::FRIEND_REQUEST : {
+                $this->sendFriendRequestController();
                 break;
             }
         }
@@ -86,11 +91,18 @@ class UserController {
     }
     
     private function searchUsersController () {
-        $name = $_GET["keyword"];
-        $response = User::searchUsersModel($name, "users");
+        session_start();
+        $data = [ "id" => $_SESSION["user_information"]["id"], "name" => $_GET["keyword"] ];
+        $response = User::searchUsersModel($data, "users");
         return $response;
     }
 
+    private function sendFriendRequestController () {
+        session_start();
+        $data = [ "from_user" => $_SESSION["user_information"]["id"], "to_user" => $_POST["to_user"] ];
+        $response = User::sendFriendRequestModel( $data, "friend_requests" );
+        return $response;
+    }
 }
 
 $user_controller = new UserController();
