@@ -53,6 +53,13 @@ function cuteHide(el) {
   });
 
 
+// Detalles de contacto
+$('.friendDetails').on("click", function(e){
+    e.preventDefault();
+    $('#friendDetails').modal('show');
+});
+
+
 // Pintar fill del estado
 function printUserStatus(status){
     switch(status){
