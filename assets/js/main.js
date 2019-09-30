@@ -19,6 +19,20 @@ $("#menu-toggle").click(function (e) {
 
 });
 
+//Rechazar Contactos animacion
+function cuteHide(el) {
+    el.animate({opacity: '0'}, 150, function(){
+      el.animate({height: '0px'}, 150, function(){
+        el.remove();
+      });
+    });
+  }
+  
+  $('.rejectFriend').on('click', function(){
+    var el = $(this).closest('.contact');
+    cuteHide(el);
+  });
+
 
 // Pintar fill del estado
 function printUserStatus(status){

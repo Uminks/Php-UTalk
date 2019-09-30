@@ -14,7 +14,7 @@
                     </div>
                     <div class="options-contact">
                         <a href="#"> <img src="assets/svg/add-user.svg" title="Aceptar solicitud" alt="Aceptar"> </a>
-                        <a href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
+                        <a class="rejectFriend" href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
                     </div>
                 </li>
 
@@ -27,7 +27,7 @@
                     </div>                   
                     <div class="options-contact">
                         <a href="#"> <img src="assets/svg/add-user.svg" title="Aceptar solicitud" alt="Aceptar"> </a>
-                        <a href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
+                        <a class="rejectFriend" href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
                     </div>
                 </li>
 
@@ -42,7 +42,7 @@
                     </div>  
                     <div class="options-contact">
                         <a href="#"> <img src="assets/svg/add-user.svg" title="Aceptar solicitud" alt="Aceptar"> </a>
-                        <a href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
+                        <a class="rejectFriend" href="#"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>
                     </div>
                 </li>
               
