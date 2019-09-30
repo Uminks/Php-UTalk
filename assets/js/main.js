@@ -19,7 +19,7 @@ $("#menu-toggle").click(function (e) {
 
 });
 
-//Rechazar Contactos animacion
+//Remove animacion
 function cuteHide(el) {
     el.animate({opacity: '0'}, 150, function(){
       el.animate({height: '0px'}, 150, function(){
@@ -27,10 +27,28 @@ function cuteHide(el) {
       });
     });
   }
-  
+
+//Rechazar Contactos animacion
   $('.rejectFriend').on('click', function(){
     var el = $(this).closest('.contact');
     cuteHide(el);
+  });
+
+//Eliminar Contactos animacion
+  $('.deleteFriend').on('click', function(){
+    var el = $(this).closest('.contact');
+    $("#confirmDelete").modal('show');
+
+    $("#modal-btn-si").on("click", function(){
+        cuteHide(el);
+        $("#confirmDelete").modal('hide');
+    });
+
+    $("#modal-btn-no").on("click", function(){
+        $("#confirmDelete").modal('hide');
+        return false;
+    });
+    
   });
 
 

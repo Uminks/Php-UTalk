@@ -19,7 +19,7 @@
                         <a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>
                         <a href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto"  alt="Ver detalles"> </a>
                         <a href="#"> <img src="assets/svg/block-friend.svg"   title="Bloquear contacto" alt="Bloquear"> </a>
-                        <a href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
+                        <a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
                     </div>
                 </li>
 
@@ -36,7 +36,7 @@
                         <a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>
                         <a href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto"  alt="Ver detalles"> </a>
                         <a href="#"> <img src="assets/svg/block-friend.svg"   title="Bloquear contacto" alt="Bloquear"> </a>
-                        <a href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
+                        <a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
                     </div>
                 </li>
 
@@ -55,12 +55,27 @@
                         <a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>
                         <a href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto"  alt="Ver detalles"> </a>
                         <a href="#"> <img src="assets/svg/block-friend.svg"   title="Bloquear contacto" alt="Bloquear"> </a>
-                        <a href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
+                        <a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg"   title="Eliminar contacto" alt="Eliminar"> </a>
                     </div>
                 </li>
               
               </ul>        
 
           </div>
+
+              
+            <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true" id="confirmDelete">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Estas seguro que deseas eliminar este contacto?</h4>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-default" id="modal-btn-si">Si</button>
+                    <button type="button" class="btn btn-primary" id="modal-btn-no">No</button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
       </div>
