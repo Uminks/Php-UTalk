@@ -80,19 +80,27 @@ class User extends Conexion {
     }
     
     
-    #PEDIR DATOS DEL USUARIO PARA ACTUALIZAR
+    #ACTUALIZAR DATA PERSONAL
     #-----------------------------------
-    public static function getDataUserUpdate($data, $tabla) {
-        $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, username, password, date FROM $tabla WHERE username = :username");
+    public static function updateUserData($data, $tabla) {
+        if(isset($data["password"]) && strlen($data["password"]) > 0){
+            $stmt = Conexion::conectar()->prepare("UPDATE $tabla SET first_name = :first_name, last_name = :last_name, password = :password, date = :date WHERE username = :username");
+            $stmt->bindParam(":password", $data["password"], PDO::PARAM_STR);
+        }else {
+            $stmt = Conexion::conectar()->prepare("UPDATE $tabla SET first_name = :first_name, last_name = :last_name, date = :date WHERE username = :username");
+        }
+        
         $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
+        $stmt->bindParam(":first_name", $data["first_name"], PDO::PARAM_STR);
+        $stmt->bindParam(":last_name", $data["last_name"], PDO::PARAM_STR);
+        
+        $stmt->bindParam(":date", $data["date"], PDO::PARAM_STR);
 
         if( $stmt->execute() ){
-            echo "success";
-            return true;
+            echo $data;
         }
         else{
             echo "error";
-            return false;
         }
     }
 

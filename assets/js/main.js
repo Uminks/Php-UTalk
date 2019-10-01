@@ -82,6 +82,34 @@ function printUserStatus(status){
     }
 }
 
+
+
+//Actualizar Informacion del usuario
+
+let htmlAlert = '<div class="alert alert-success">Informacion actualizada con exito.</div>';
+$("#success-message").append(htmlAlert).hide();
+
+$('#update-info').submit(function(e){
+
+    e.preventDefault(); 
+
+    var _data = $('#update-info').serializeArray().reduce(function(obj, item) {
+      obj[item.name] = item.value;
+      return obj;
+    }, {});
+    
+    $.ajax({
+      url: "/controllers/UserController.php?task=update_user_data",
+      method: "POST",
+      data: _data,
+      success:function(response){
+          $("#success-message").first().hide().fadeIn(200).delay(2000).fadeOut(1000, function () { $('#success-message').hide(); });
+      }
+    });
+
+   
+});
+
 // Setear Estado del Usuario
 function updateUserStatus (status) {
     
