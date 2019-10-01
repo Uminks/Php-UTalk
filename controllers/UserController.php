@@ -11,6 +11,7 @@ class UserController {
     const SEARCH_USERS = "search"; 
     const FRIEND_REQUEST = "friend_request";  
     const UPDATE_STATUS = "update_status";
+    const GET_PERSONAL_DATA = "get_personal_data";
     const LOGOUT = "logout";
 
     public function initContent ( $task ) {
@@ -39,6 +40,10 @@ class UserController {
             }
             case self::UPDATE_STATUS : {
                 $this->setUserStatus();
+                break;
+            }
+            case self::GET_PERSONAL_DATA : {
+                $this->getPersonalDetails();
                 break;
             }
             case self::LOGOUT : {
@@ -112,6 +117,13 @@ class UserController {
         $data = [ "from_user" => $_SESSION["user_information"]["id"], "to_user" => $_POST["to_user"] ];
         $response = User::sendFriendRequestModel( $data, "friend_requests" );
         return $response;
+    }
+
+    private function getPersonalDetails() {
+        session_start();
+        $data = [ "username" => $_SESSION["user_information"]["username"]];
+        $response = User::getDataUserUpdate($data, "users");
+        return $reponse;
     }
 
     private function setUserStatus() {

@@ -77,7 +77,24 @@ class User extends Conexion {
         else{
             echo "error";
         }
-    } 
+    }
+    
+    
+    #PEDIR DATOS DEL USUARIO PARA ACTUALIZAR
+    #-----------------------------------
+    public static function getDataUserUpdate($data, $tabla) {
+        $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, username, password, date FROM $tabla WHERE username = :username");
+        $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
+
+        if( $stmt->execute() ){
+            echo "success";
+            return true;
+        }
+        else{
+            echo "error";
+            return false;
+        }
+    }
 
     #ACTUALIZANDO ESTADO
     #------------------------------------ 

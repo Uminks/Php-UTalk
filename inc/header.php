@@ -59,19 +59,19 @@
 
               <div class="form-group">
                   <label for="name">Nombre</label>
-                  <input type="text" class="form-control form-control-sm" id="name" placeholder="Nombre" required>
+                  <input type="text" class="form-control form-control-sm" id="name" value="<?php echo $_SESSION["user_information"]["first_name"]?>" required>
               </div>
               <div class="form-group">
                   <label for="last-name">Apellido</label>
-                  <input type="text" class="form-control form-control-sm" id="last-name" placeholder="Apellido" required>
+                  <input type="text" class="form-control form-control-sm" id="last-name" value="<?php echo $_SESSION["user_information"]["last_name"]?>" required>
               </div>
               <div class="form-group">
                   <label for="username">Nombre de usuario</label>
-                  <input type="text" disabled class="form-control form-control-sm" id="username" placeholder="Usuario" required>
+                  <input type="text" autocomplete="username" disabled class="form-control form-control-sm" id="username"  value="<?php echo $_SESSION["user_information"]["username"]?>" required>
               </div>
               <div class="form-group">
-                  <label for="password">Contraseña</label>
-                  <input type="password" disabled class="form-control form-control-sm" id="passwordRenove" placeholder="Contraseña" required>
+                  <label for="passwordRenove">Contraseña</label>
+                  <input type="password"  autocomplete="new-password" disabled class="form-control form-control-sm" id="passwordRenove"  value="<?php echo $_SESSION["user_information"]["password"]?>" required>
               </div>
               <div class="form-group">
                   <label for="password">Nueva contraseña</label>
@@ -79,7 +79,7 @@
               </div>
               <div class="form-group">
                   <label for="date">Fecha de nacimiento</label>
-                  <input type="date" class="form-control form-control-sm" id="date" placeholder="Fecha de nacimiento" required>
+                  <input type="date" class="form-control form-control-sm" id="date"  value="<?php echo date("Y-m-d",strtotime($_SESSION["user_information"]["date"])) ;?>" required>
               </div>
 
             </form>
