@@ -57,7 +57,21 @@ class User extends Conexion {
     #------------------------------------
     public static function searchUsersModel($data, $tabla) {
         $name = $data["name"];
-        $stmt = Conexion::conectar()->prepare("SELECT id, first_name, last_name, username FROM $tabla WHERE username LIKE '%$name%' AND id != :id");
+        
+        $stmt = Conexion::conectar()->prepare(
+            "SELECT u.id, u.first_name, u.last_name, u.username
+                FROM $tabla u
+                WHERE 
+                    u.username LIKE '%$name%'
+                    AND u.id != 2
+                    AND u.id NOT IN  (
+                        SELECT from_user FROM friend_requests WHERE to_user = :id
+                    )
+                    AND u.id NOT IN ( 
+                        SELECT to_user FROM friend_requests WHERE from_user = :id
+                    )
+            "
+        );
         $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
         $stmt->execute();
         
