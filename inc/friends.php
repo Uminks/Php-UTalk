@@ -36,13 +36,13 @@
                     <div class="friend-data">
                       <div class="friend-info-details">
                           <img class="image-contact-details" src="assets/images/people2.png" alt="contact image">
-                          <span class="friend-state-details" style="background: orange;"></span>
+                          <span class="friend-state-details"></span>
                       </div>
-                        <p> Nombre: <span> Nombre </span> </p>
-                        <p> Apellido: <span> Apellido </span> </p>
-                        <p> Usuario: <span> Usuario </span> </p>
-                        <p> Edad: <span> Edad </span> </p>
-                        <p> Genero: <span> Genero </span> </p>
+                        <p> Nombre: <span id="name-contact"></span> </p>
+                        <p> Apellido: <span id="last-name-contact"></span> </p>
+                        <p> Usuario: <span id="user-contact"></span> </p>
+                        <p> Edad: <span id="age-contact"></span> </p>
+                        <p> Genero: <span id="gender-contact"></span> </p>
                     </div>
                 </div>
                 <div class="modal-footer">

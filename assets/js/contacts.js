@@ -21,12 +21,19 @@ $("#add-contact").change( (e) => {
                                 '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">' + item["username"] + '</span></h2>' +
                             '</div>' +
                             '<div class="options-contact">' +
-                                '<a onclick="sendFriendRequest(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>' +
+                                '<a class="inviteFriend" onclick="sendFriendRequest(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Agregar usuario" alt="Agregar"> </a>' +
                             '</div>' +
                         '</li>';
 
                 $("#add-contact-results").append(li);
             })
+
+            //Invitar amigo animacion
+            $('.inviteFriend').on('click', function(){
+                var el = $(this).closest('.contact');
+                cuteHide(el);
+            });
+
 		}
 	});
 });
@@ -66,12 +73,18 @@ $('a[href^="#solicitudes"]').click( (e) => {
                             '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">('+ item["username"] +')</span></h2>' +
                             '</div>' +
                             '<div class="options-contact">' +
-                                '<a onclick="acceptFriendRequest(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Aceptar solicitud" alt="Aceptar"> </a>' +
+                                '<a class="rejectFriend" onclick="acceptFriendRequest(' + item["id"] + ')"> <img src="assets/svg/add-user.svg" title="Aceptar solicitud" alt="Aceptar"> </a>' +
                                 '<a class="rejectFriend" onclick="deleteFriendRequest(' + item["id"] + ')"> <img src="assets/svg/reject-user.svg" title="Rechazar solicitud" alt="Rechazar"> </a>' +
                             '</div>' +
                         '</li>';
 
                 $("#ul-friend-requests").append(li);
+            });
+
+            //Rechazar Contactos animacion
+            $('.rejectFriend').on('click', function(){
+                var el = $(this).closest('.contact');
+                cuteHide(el);
             });
         }
     });
@@ -87,7 +100,7 @@ function acceptFriendRequest (id) {
 		method: "POST",
 		data: _data,
 		success:function(response){
-            console.log(response); //Animacion de agregado a contactos y eliminar 
+
 		}
 	});
 }
@@ -116,6 +129,7 @@ $('a[href^="#contactos"]').click( (e) => {
         method: "GET",
         data: _data,
         success:function(response){
+
             let data = JSON.parse(response);
 			data.map( (item) => {
                 let li = '<li class="contact">' +
@@ -129,7 +143,7 @@ $('a[href^="#contactos"]').click( (e) => {
                             '<div class="options-contact">' +
                                 '<a href="#"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
                                 '<a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>' +
-                                '<a class="friendDetails"  href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
+                                '<a class="friendDetails" onclick="friendDetails(\''+  item["username"] +'\',event)" href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
                                 '<a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear contacto" alt="Bloquear"> </a>' +
                                 '<a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg" title="Eliminar contacto" alt="Eliminar"> </a>' +
                             '</div>' +
@@ -137,6 +151,26 @@ $('a[href^="#contactos"]').click( (e) => {
 
                 $("#ul-contacts").append(li);
             });
+
+            //Eliminar Contactos animacion
+            $('.deleteFriend').on('click', function(e){
+                e.preventDefault();
+                
+                var el = $(this).closest('.contact');
+                $("#confirmDelete").modal('show');
+
+                $("#modal-btn-si").on("click", function(){
+                    cuteHide(el);
+                    $("#confirmDelete").modal('hide');
+                });
+
+                $("#modal-btn-no").on("click", function(){
+                    $("#confirmDelete").modal('hide');
+                    return false;
+                });
+                
+            });
+
         }
     });
 
