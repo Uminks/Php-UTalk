@@ -167,9 +167,7 @@ class UserController {
         $data = [ "username" => $_SESSION["user_information"]["username"], "connection_status" =>  $_POST["connection_status"] ];
         $response = User::updateUserStatus($data, "users");
 
-        if($response == "success"){
-            $_SESSION["user_information"]["connection_status"] = $_POST["connection_status"];
-        }
+        $_SESSION["user_information"]["connection_status"] = $data["connection_status"];
         
         return $response;
     }
