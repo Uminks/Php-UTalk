@@ -11,6 +11,7 @@ class UserController {
     const SEARCH_USERS = "search"; 
     const FRIEND_REQUEST = "friend_request";  
     const UPDATE_STATUS = "update_status";
+    const UPDATE_USER_DATA = "update_user_data";
     const LOGOUT = "logout";
     const GET_FRIEND_REQUEST = "get_friend_request";
     const ACCEPT_FRIEND_REQUEST = "accept_friend_request";
@@ -42,6 +43,10 @@ class UserController {
             }
             case self::UPDATE_STATUS : {
                 $this->setUserStatus();
+                break;
+            }
+            case self::UPDATE_USER_DATA : {
+                $this->updateUserData();
                 break;
             }
             case self::LOGOUT : {
@@ -129,13 +134,32 @@ class UserController {
         return $response;
     }
 
-    private function setUserStatus () {
+    private function updateUserData() {
+        session_start();
+        $data = [ "username" => $_SESSION["user_information"]["username"], "first_name" =>  $_POST["first_name"], "last_name" =>  $_POST["last_name"], "date" =>  $_POST["date"], "password" =>  $_POST["password"]];
+        $response = User::updateUserData($data, "users");
+
+        if($response == "success"){
+            $_SESSION["user_information"]["first_name"] = $_POST["first_name"];
+            $_SESSION["user_information"]["last_name"] = $_POST["last_name"];
+            $_SESSION["user_information"]["date"] = $_POST["date"];
+            if(isset($_POST["password"]) && strlen( $_POST["password"]) > 0 ){
+                $_SESSION["user_information"]["password"] = $_POST["password"];
+            }
+        }
+
+        return $response;
+    }
+
+    private function setUserStatus() {
         session_start();
         $data = [ "username" => $_SESSION["user_information"]["username"], "connection_status" =>  $_POST["connection_status"] ];
-        $reponse = User::updateUserStatus($data, "users");
+        $response = User::updateUserStatus($data, "users");
 
-        $_SESSION["user_information"]["connection_status"] = $_POST["connection_status"];
-   
+        if($response == "success"){
+            $_SESSION["user_information"]["connection_status"] = $_POST["connection_status"];
+        }
+        
         return $response;
     }
 
