@@ -105,3 +105,56 @@ function deleteFriendRequest (id) {
 		}
 	});
 }
+
+$('a[href^="#contactos"]').click( (e) => {
+    $("#ul-contacts").empty();
+    let _data = { 
+        task: "get_contacts"
+    };
+    $.ajax({
+        url: "controllers/UserController.php",
+        method: "GET",
+        data: _data,
+        success:function(response){
+            let data = JSON.parse(response);
+			data.map( (item) => {
+                let li = '<li class="contact">' +
+                            '<div class="left-info">' +
+                                '<div class="friend-info">' +
+                                    '<img class="image-contact" src="assets/images/people2.png" alt="contact image">' +
+                                    '<span class="friend-state" style="background: ' + getColorStatus( item["connection_status"] ) +';"></span>' +
+                                '</div>' +
+                                '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">('+ item["username"] +')</span></h2>' +
+                            '</div>' +
+                            '<div class="options-contact">' +
+                                '<a href="#"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
+                                '<a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>' +
+                                '<a class="friendDetails"  href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
+                                '<a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear contacto" alt="Bloquear"> </a>' +
+                                '<a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg" title="Eliminar contacto" alt="Eliminar"> </a>' +
+                            '</div>' +
+                        '</li>';
+
+                $("#ul-contacts").append(li);
+            });
+        }
+    });
+
+})
+
+function getColorStatus (status) {
+    switch(status){
+        case '0': {
+            return 'green';
+        }
+        case '1': {
+            return 'orange';
+        }
+        case '2': {
+            return 'darkred';
+        }
+        case '3': {
+            return 'lightgray';
+        }
+    }
+}

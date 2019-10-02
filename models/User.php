@@ -143,6 +143,8 @@ class User extends Conexion {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    #ACEPTANDO SOLICITUDES DE AMISTAD
+    #-------------------------------------
     public static function acceptFriendRequestsModel ($data, $tabla){
         $stmt = Conexion::conectar()->prepare(
             "INSERT INTO $tabla ( id_user, id_user_friend ) VALUES ( :id_user, :id );
@@ -161,6 +163,8 @@ class User extends Conexion {
         }
     }
 
+    #ELIMINANDO SOLICITUDES DE AMISTAD
+    #-------------------------------------
     public static function deleteFriendRequestsModel ($data, $tabla){
         $stmt = Conexion::conectar()->prepare("DELETE FROM $tabla WHERE from_user = :id_user AND to_user = :id");
 
@@ -173,5 +177,15 @@ class User extends Conexion {
         else{
             echo "error";
         }
+    }
+
+    # OBTENIENDO CONTACTOS
+    #-------------------------------------
+    public static function gerContactsModel($data, $tabla){
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla u INNER JOIN friends f ON  u.id = f.id_user_friend WHERE f.id_user = :id");
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
