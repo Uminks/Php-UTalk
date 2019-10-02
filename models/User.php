@@ -81,7 +81,7 @@ class User extends Conexion {
     #INSERTANDO SOLICITUD DE AMISTAD DE USUARIO 
     #------------------------------------
     public static function sendFriendRequestModel($data, $tabla) {
-        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla ( from_user, to_user, request_status ) VALUES ( :from_user, :to_user, 0 )");
+        $stmt = Conexion::conectar()->prepare("INSERT INTO $tabla ( from_user, to_user ) VALUES ( :from_user, :to_user )");
         $stmt->bindParam(":from_user", $data["from_user"], PDO::PARAM_INT);
         $stmt->bindParam(":to_user", $data["to_user"], PDO::PARAM_INT);
 
@@ -107,4 +107,46 @@ class User extends Conexion {
             echo "error";
         }
     } 
+
+    #OBTENIENDO SOLICITUDES DE AMISTAD
+    #-------------------------------------
+    public static function getFriendRequestsModel($data, $tabla){
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM users u INNER JOIN friend_requests fr ON u.id = fr.from_user WHERE fr.to_user = :id AND fr.request_status = 0");
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function acceptFriendRequestsModel ($data, $tabla){
+        $stmt = Conexion::conectar()->prepare(
+            "INSERT INTO $tabla ( id_user, id_user_friend ) VALUES ( :id_user, :id );
+             INSERT INTO $tabla ( id_user, id_user_friend ) VALUES ( :id, :id_user );
+             UPDATE friend_requests SET request_status = 1 WHERE from_user = :id_user AND to_user = :id
+        ");
+
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
+
+        if( $stmt->execute() ){
+            echo "success";
+        }
+        else{
+            echo "error";
+        }
+    }
+
+    public static function deleteFriendRequestsModel ($data, $tabla){
+        $stmt = Conexion::conectar()->prepare("DELETE FROM $tabla WHERE from_user = :id_user AND to_user = :id");
+
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
+
+        if( $stmt->execute() ){
+            echo "success";
+        }
+        else{
+            echo "error";
+        }
+    }
 }

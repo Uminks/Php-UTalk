@@ -12,6 +12,9 @@ class UserController {
     const FRIEND_REQUEST = "friend_request";  
     const UPDATE_STATUS = "update_status";
     const LOGOUT = "logout";
+    const GET_FRIEND_REQUEST = "get_friend_request";
+    const ACCEPT_FRIEND_REQUEST = "accept_friend_request";
+    const DELETE_FRIEND_REQUEST = "delete_friend_request";
 
     public function initContent ( $task ) {
 
@@ -43,6 +46,18 @@ class UserController {
             }
             case self::LOGOUT : {
                 $this->logoutUserController();
+                break;
+            }
+            case self::GET_FRIEND_REQUEST : {
+                echo json_encode( $this->getFriendRequestsController() );
+                break;
+            }
+            case self::ACCEPT_FRIEND_REQUEST : {
+                $this->acceptFriendRequestsController();
+                break;
+            }
+            case self::DELETE_FRIEND_REQUEST : {
+                $this->deleteFriendRequestsController();
                 break;
             }
         }
@@ -114,7 +129,7 @@ class UserController {
         return $response;
     }
 
-    private function setUserStatus() {
+    private function setUserStatus () {
         session_start();
         $data = [ "username" => $_SESSION["user_information"]["username"], "connection_status" =>  $_POST["connection_status"] ];
         $reponse = User::updateUserStatus($data, "users");
@@ -124,7 +139,7 @@ class UserController {
         return $response;
     }
 
-    private function logoutUserController() {
+    private function logoutUserController () {
 
         session_start();
         if(isset($_SESSION["user_information"])){
@@ -135,7 +150,26 @@ class UserController {
         header("location: /");
     }
 
+    private function getFriendRequestsController () {
+        session_start();
+        $data = [ "id" => $_SESSION["user_information"]["id"] ];
+        $response = User::getFriendRequestsModel($data, "users");
+        return $response;
+    }
 
+    private function acceptFriendRequestsController () {
+        session_start();
+        $data = [ "id" => $_SESSION["user_information"]["id"] , "id_user" => $_POST["id_user"] ]; 
+        $response = User::acceptFriendRequestsModel($data, "friends");
+        return $response;
+    }
+
+    private function deleteFriendRequestsController () {
+        session_start();
+        $data = [ "id" => $_SESSION["user_information"]["id"] , "id_user" => $_POST["id_user"] ]; 
+        $response = User::deleteFriendRequestsModel($data, "friend_requests");
+        return $response;
+    }
 }
 
 $user_controller = new UserController();
