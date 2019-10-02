@@ -141,7 +141,7 @@ $('a[href^="#contactos"]').click( (e) => {
                                 '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">('+ item["username"] +')</span></h2>' +
                             '</div>' +
                             '<div class="options-contact">' +
-                                '<a href="#"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
+                                '<a class="newMessage" href="#"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
                                 '<a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>' +
                                 '<a class="friendDetails" onclick="friendDetails(\''+  item["username"] +'\',event)" href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
                                 '<a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear contacto" alt="Bloquear"> </a>' +
@@ -169,6 +169,16 @@ $('a[href^="#contactos"]').click( (e) => {
                     return false;
                 });
                 
+            });
+
+            //Nuevo Mensaje
+            $('.newMessage').on('click', function (e) {
+
+                e.preventDefault();
+                $("#chat-tab").tab('show');
+
+                //Logica para traerse el chat aca.
+
             });
 
         }
