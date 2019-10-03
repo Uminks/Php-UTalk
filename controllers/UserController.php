@@ -17,6 +17,7 @@ class UserController {
     const ACCEPT_FRIEND_REQUEST = "accept_friend_request";
     const DELETE_FRIEND_REQUEST = "delete_friend_request";
     const GET_CONTACTS = "get_contacts";
+    const GET_CONTACT_DETAILS = "get_contact_details";
 
     public function initContent ( $task ) {
 
@@ -68,6 +69,10 @@ class UserController {
             }
             case self::GET_CONTACTS : {
                 echo json_encode( $this->gerContactsController() );
+                break;
+            }
+            case self::GET_CONTACT_DETAILS : {
+                echo json_encode( $this->getContactDetails() );
                 break;
             }
         }
@@ -132,6 +137,7 @@ class UserController {
         return $response;
     }
 
+
     private function sendFriendRequestController () {
         session_start();
         $data = [ "from_user" => $_SESSION["user_information"]["id"], "to_user" => $_POST["to_user"] ];
@@ -161,9 +167,7 @@ class UserController {
         $data = [ "username" => $_SESSION["user_information"]["username"], "connection_status" =>  $_POST["connection_status"] ];
         $response = User::updateUserStatus($data, "users");
 
-        if($response == "success"){
-            $_SESSION["user_information"]["connection_status"] = $_POST["connection_status"];
-        }
+        $_SESSION["user_information"]["connection_status"] = $data["connection_status"];
         
         return $response;
     }
@@ -204,6 +208,13 @@ class UserController {
         session_start();
         $data = [ "id" => $_SESSION["user_information"]["id"] ];
         $response = User::gerContactsModel($data, "users");
+        return $response;
+    }
+
+    private function getContactDetails(){
+        session_start();
+        $data = [ "username" => $_GET["username"]];
+        $response = User::getContactDetails($data, "users");
         return $response;
     }
 }

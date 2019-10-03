@@ -92,8 +92,8 @@ class User extends Conexion {
             echo "error";
         }
     }
-    
-    
+
+   
     #ACTUALIZAR DATA PERSONAL
     #-----------------------------------
     public static function updateUserData($data, $tabla) {
@@ -140,6 +140,16 @@ class User extends Conexion {
         $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
         $stmt->execute();
         
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+     #OBTENER DETALLES DEL CONTACTO
+    #-----------------------------------
+    public static function getContactDetails($data, $tabla) {
+        $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, username, date, gender, connection_status FROM $tabla WHERE username = :username");
+        $stmt->bindParam(":username", $data["username"], PDO::PARAM_STR);
+        $stmt->execute(); 
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
