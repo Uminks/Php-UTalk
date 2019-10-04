@@ -15,47 +15,7 @@
 
           <div class="people">
 
-            <ul class="list">
-              <li>
-                <img src="assets/images/people2.png" alt="sunil">
-                <div class="content-chat">
-                  <div class="info-content">
-                    <h2 class="top-content"> Luis Fernando Vargas Gomez </h2>
-                    <span> 11:30 am </span>
-                  </div>
-                  
-                  <p class="message-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
-                </div>
-                
-              
-              </li>
-              <li>
-                <img src="assets/images/people2.png" alt="sunil">
-                <div class="content-chat">
-                  <div class="info-content">
-                    <h2 class="top-content"> Brayan Bladimir Montañez Ortiz </h2>
-                    <span> 1:30 am </span>
-                  </div>
-                  
-                  <p class="message-content"> <span class="alert-message">2</span> Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
-                </div>
-                
-              
-              </li>
-              <li>
-                <img src="assets/images/people2.png" alt="sunil">
-                <div class="content-chat">
-                  <div class="info-content">
-                    <h2 class="top-content">  Maria Bolivar </h2>
-                    <span> 3:30 pm </span>
-                  </div>
-                  
-                  <p class="message-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Neque consequatur tenetur placeat impedit laboriosam necessitatibus sapiente, eaque repudiandae nesciunt quasi accusamus quam a alias nostrum vero! Ab repellendus enim amet. </p>
-                </div>
-                
-              
-              </li>
-            </ul>
+            <ul class="list" id="chats-index"></ul>
           
           </div>
                

@@ -149,7 +149,7 @@ $('a[href^="#contactos"]').click( (e) => {
                                 '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">('+ item["username"] +')</span></h2>' +
                             '</div>' +
                             '<div class="options-contact">' +
-                                '<a class="newMessage" href="#"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
+                                '<a class="newMessage" data-id="'+ item["id"] +'"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
                                 '<a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>' +
                                 '<a class="friendDetails" onclick="friendDetails(\''+  item["username"] +'\',event)" href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
                                 '<a href="#"> <img src="assets/svg/block-friend.svg" title="Bloquear contacto" alt="Bloquear"> </a>' +
@@ -184,7 +184,7 @@ $('a[href^="#contactos"]').click( (e) => {
 
                 e.preventDefault();
                 $("#chat-tab").tab('show');
-
+                getChats($(this).data("id"));
                 //Logica para traerse el chat aca.
 
             });
@@ -210,3 +210,36 @@ function getColorStatus (status) {
         }
     }
 }
+
+function getChats (id = 'null') {
+    $("#chats-index").empty();
+    let _data = { 
+        task: "get_chats", 
+        id: id
+    };
+    $.ajax({
+		url: "controllers/ChatController.php",
+		method: "GET",
+		data: _data,
+		success:function(response){
+            let data = JSON.parse(response);
+			data.map( (item) => {
+                let li = '<li>' +
+                            '<img src="assets/images/people2.png" alt="sunil">' +
+                            '<div class="content-chat">' +
+                            '<div class="info-content">' +
+                                '<h2 class="top-content"> ' + item["name"] + ' </h2>' +
+                                '<span> ' + item["date"] + ' </span>' +
+                            '</div>' +
+                            '<p class="message-content">' + item['last_message'] + '</p>' +
+                            '</div>' +  
+                        '</li>';
+                $("#chats-index").append(li);
+            }); 
+		}
+	});
+}
+
+$(document).ready( (e) => {
+    getChats();
+});
