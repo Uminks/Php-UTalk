@@ -37,7 +37,7 @@
                   <button class="send" type="submit">Enviar <img class="sendIcon" src="assets/svg/send.svg" alt=""></button>
                   <div class="button-wrapper">
                     <span class="label">
-                      Subir imagen <img class="sendIcon" src="assets/svg/image.svg" alt="image">
+                      Subir archivo <img class="sendIcon" src="assets/svg/image.svg" alt="image">
                     </span>
                     
                       <input type="file" name="upload" id="upload" class="upload-box" placeholder="Upload File">
