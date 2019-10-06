@@ -63,7 +63,7 @@ class User extends Conexion {
                 FROM $tabla u
                 WHERE 
                     u.username LIKE '%$name%'
-                    AND u.id != 2
+                    AND u.id != :id
                     AND u.id NOT IN  (
                         SELECT from_user FROM friend_requests WHERE to_user = :id
                     )
