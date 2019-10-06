@@ -16,6 +16,9 @@ img {
     border: 1px solid #c4c4c4;
     clear: both;
     overflow: hidden;
+    min-height: 70vh;
+    display: flex;
+    align-items: flex-end;
 }
 
 .top_spac {
@@ -124,6 +127,7 @@ img {
 .mesgs {
     float: left;
     padding: 20px 20px;
+    width: 100%;
 }
 
 .sent_msg p {

@@ -26,66 +26,15 @@
 
               <div class="mesgs">
                 <div class="msg_history">
-
-                  <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
-                    <div class="received_msg">
-                      <div class="received_withd_msg">
-                        <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
-                        <span class="time_date"> 11:01 AM    |    June 9</span></div>
-                    </div>
-                  </div>
-
-
-                  <div class="outgoing_msg">
-                    <div class="sent_msg">
-                      <p>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.</p>
-                      <span class="time_date"> 11:01 AM    |    June 9</span> 
-                    </div>
-                  </div>
-
-
-
-                  <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
-                    <div class="received_msg">
-                      <div class="received_withd_msg">
-                        <p>Test, which is a new approach to have</p>
-                        <span class="time_date"> 11:01 AM    |    Yesterday</span>
-                      </div>
-                    </div>
-                  </div>
-
-
-
-                  <div class="outgoing_msg">
-                    <div class="sent_msg">
-                      <p>Apollo University, Delhi, India Test</p>
-                      <span class="time_date"> 11:01 AM    |    Today</span> 
-                    </div>
-                  </div>
-
-
-                  <div class="incoming_msg">
-                    <div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>
-                    <div class="received_msg">
-                      <div class="received_withd_msg">
-                        <p>We work directly with our designers and suppliers,
-                          and sell direct to you, which means quality, exclusive
-                          products, at a price anyone can afford.</p>
-                        <span class="time_date"> 11:01 AM    |    Today</span></div>
-                    </div>
-                  </div> 
-
                 </div>
               </div>
 
             </div>
 
-            <div class="user-chat">
+            <form class="user-chat" method="post" data-id="-">
                <textarea  name="text-chat" id="text-chat" class="text-chat" cols="30" rows="3"></textarea>
                <div class="send-section">
-                  <button class="send">Enviar <img class="sendIcon" src="assets/svg/send.svg" alt=""></button>
+                  <button class="send" type="submit">Enviar <img class="sendIcon" src="assets/svg/send.svg" alt=""></button>
                   <div class="button-wrapper">
                     <span class="label">
                       Subir imagen <img class="sendIcon" src="assets/svg/image.svg" alt="image">
@@ -95,7 +44,7 @@
                     
                   </div>
                </div>
-            </div>
+            </form>
         </div>
   
   

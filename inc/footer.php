@@ -13,6 +13,7 @@
     <script src="assets/js/emojionearea.min.js"></script>
     <script src="assets/js/moment.js"></script>
     <script src="assets/js/main.js"></script>
+    <script src="assets/js/chat.js"></script>
     <script src="assets/js/contacts.js"></script>
     
 </body>

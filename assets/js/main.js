@@ -128,7 +128,7 @@ function updateUserStatus (status) {
         connection_status: status
     };
 
-    console.log(_data);
+    //console.log(_data);
 
     $.ajax({
 		url: "controllers/UserController.php?task=update_status",
