@@ -58,14 +58,14 @@ class Chat extends Conexion {
                 elseif ( $chat["id_user_2"] !=  $data["id"] ) {
                     $id = $chat["id_user_2"];
                 }
-
-                $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, status FROM users WHERE id = :id");
+                
+                $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, connection_status FROM users WHERE id = :id");
                 $stmt->bindParam(":id", $id, PDO::PARAM_INT);
                 $stmt->execute();
 
                 $name = $stmt->fetch(PDO::FETCH_ASSOC);
                 
-                $status = $name["status"];
+                $status = $name["connection_status"];
                 $name = $name["first_name"] . ' ' . $name["last_name"];
             }
             else {

@@ -142,6 +142,6 @@ function loadNewMessages ( id_chat ) {
     });
 }
 
-$(document).ready( (e) => {
-    getChatsListener = setInterval ( getChats(), 1500);
-});
+getChatsListener = setInterval( function() { 
+    getChats(); 
+}, 2000);
