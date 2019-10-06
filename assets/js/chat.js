@@ -123,7 +123,6 @@ function loadNewMessages ( id_chat ) {
 		method: "GET",
 		data: _data,
 		success: function(response){
-            console.log(response);
             let data = JSON.parse(response);
 			data.map( (item) => {
                 let message =   '<div class="incoming_msg">' +
@@ -142,6 +141,10 @@ function loadNewMessages ( id_chat ) {
     });
 }
 
-getChatsListener = setInterval( function() { 
+$(document).ready( (e) => {
     getChats(); 
-}, 2000);
+})
+
+$('a[href^="#conversaciones"]').click( (e) => {
+    getChats(); 
+});
