@@ -208,7 +208,7 @@ img {
 */
 
 .people-list {
-    width: 25%;
+    width: 30%;
 }
 
 .list {
@@ -240,7 +240,7 @@ img {
 .top-content {
     font-size: 16px;
     margin: 0;
-    width: 130px;
+    width: 75%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
