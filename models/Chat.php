@@ -58,7 +58,7 @@ class Chat extends Conexion {
                 elseif ( $chat["id_user_2"] !=  $data["id"] ) {
                     $id = $chat["id_user_2"];
                 }
-                
+
                 $stmt = Conexion::conectar()->prepare("SELECT first_name, last_name, connection_status FROM users WHERE id = :id");
                 $stmt->bindParam(":id", $id, PDO::PARAM_INT);
                 $stmt->execute();
@@ -92,7 +92,7 @@ class Chat extends Conexion {
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->execute();
 
-        $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat");
+        $stmt = Conexion::conectar()->prepare("SELECT *, m.date AS date_message FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat");
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
         $stmt->execute();
         
@@ -100,11 +100,12 @@ class Chat extends Conexion {
     }
 
     public static function sendMessageModel ($data, $tabla) {
-        $stmt = Conexion::conectar()->prepare("INSERT INTO messages (id_user, id_chat, message, date) VALUES (:id_user, :id_chat, :message, :date)");
+        $stmt = Conexion::conectar()->prepare("INSERT INTO messages (id_user, id_chat, message, date, is_file) VALUES (:id_user, :id_chat, :message, :date, :is_file)");
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
         $stmt->bindParam(":message", $data["message"], PDO::PARAM_STR);
         $stmt->bindParam(":date", $data["date"], PDO::PARAM_STR);
+        $stmt->bindParam(":is_file", $data["is_file"], PDO::PARAM_INT);
         $stmt->execute();
     }
 

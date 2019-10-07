@@ -8,6 +8,7 @@ class ChatController {
     const GET_ALL_MESSAGES = "get_all_messages";
     const SEND_MESSAGE = "send_message";
     const GET_NEW_MESSAGES = "get_new_messages";
+    const UPLOAD_FILE = "upload_file";
 
     public function initContent ( $task ) { 
         $option = $_GET["task"];
@@ -22,11 +23,15 @@ class ChatController {
                 break;
             }
             case self::SEND_MESSAGE : {
-                 $this->sendMessageController() ;
+                $this->sendMessageController();
                 break;
             }
             case self::GET_NEW_MESSAGES : { 
                 echo json_encode( $this->getNewMessagesController() );
+                break;
+            }
+            case self::UPLOAD_FILE : {
+                $this->uploadFileController();
                 break;
             }
         }
@@ -34,10 +39,15 @@ class ChatController {
 
     private function getChatsController () {
         session_start();
-        $data = [ "id_to_user" => $_GET["id"] , "id" => $_SESSION["user_information"]["id"] ];
-        $response = Chat::getChatsModel($data, "chats");
-        
-        return $response;
+        if ( isset($_SESSION["user_information"]["id"]) ) {
+            $data = [ "id_to_user" => $_GET["id"] , "id" => $_SESSION["user_information"]["id"] ];
+            $response = Chat::getChatsModel($data, "chats");
+            
+            return $response;
+        }
+        else {
+            return false;
+        }
     }
 
     private function getAllMessagesController () {
@@ -55,7 +65,8 @@ class ChatController {
             "id_user" => $_SESSION["user_information"]["id"],
             "id_chat" => $_POST["id_chat"],
             "message" => $_POST["message"],
-            "date" => date("Y-m-d H:i:s")
+            "date" => date("Y-m-d H:i:s"),
+            "is_file" => 0
         ];
 
         $response = Chat::sendMessageModel($data, "messages");
@@ -69,6 +80,29 @@ class ChatController {
         ];
         $response = Chat::getNewMessagesModel($data, "messages");
         return $response;
+    }
+
+    private function uploadFileController () {
+        session_start();
+        if ( 0 < $_FILES['file']['error'] ) {
+            echo 'Error: ' . $_FILES['file']['error'] . '<br>';
+        }
+        else {
+            $url = "uploads/" . $_FILES['file']['name'];
+            move_uploaded_file($_FILES['file']['tmp_name'], '../uploads/' . $_FILES['file']['name']);
+            
+            $data = [ 
+                "id_user" => $_SESSION["user_information"]["id"],
+                "id_chat" => $_REQUEST["id_chat"],
+                "message" => $url,
+                "date" => date("Y-m-d H:i:s"),
+                "is_file" => 1
+            ];
+    
+            $response = Chat::sendMessageModel($data, "messages");
+
+            echo $url;
+        }
     }
 }
 

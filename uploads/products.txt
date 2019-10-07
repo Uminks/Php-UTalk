@@ -1,0 +1,3306 @@
+<?php
+header('Access-Control-Allow-Origin: *');
+
+/**
+ * Copyright © 2016 Inspius. All rights reserved.
+ * Author: Khanh Tran
+ * Author URI: http://inspius.com
+ */
+require_once('api.php');
+require_once('reporteErrores.php');
+require_once ('helpers/AppLog.php');
+
+class IcymobiProductsModuleFrontController extends AbstractIcymobiApiFrontController
+{
+
+    const REQUEST_SINGLE = 'single';
+    const REQUEST_CATEGORY = 'category';
+    const REQUEST_TYPE = 'type';
+    const REQUEST_SEARCH = 'search';
+    const REQUEST_TAG = 'tag';
+    const MY_REQUEST_FILTER = 'filter';
+    const MY_REQUEST_FILTER_BY_MANUFACTURER = 'filter_manufacturer';
+    const MY_REQUEST_RANGE_PRICES = 'range_prices';
+    const MY_REQUEST_RANGE_PRICES_BY_MANUFACTURER = 'range_prices_manufacturer';
+    const MY_REQUEST_MANUFACTURER = 'manufacturer';
+    const REQUEST_CLARKS = 'clarks';
+    const MY_ADVANCED_FILTERS = 'list';
+    const GET_RELATED_PRODUCTS = 'related_products';
+    const GET_OTHER_COLORS = 'another_colors';
+    const GET_SIZES = 'sizes';
+    const GET_ALL_PRODUCTS = 'get_all_products';
+    const GET_ALL_PRODUCTS_CRON = 'get_all_products_cron';
+    const CRON_PRODUCTS_ORDERED = 'cron_products_ordered';
+    const GET_PRODUCT_VIDEOS_CRON = 'cron_product_videos';
+    const GET_ID_PRODUCT_LOCAL = 'get_id_product_local';
+    const GET_PRODUCT_FOR_UPDATE = 'get_product_for_update';
+    const GET_PRODUCT_FOR_UPDATE_CART = 'get_product_for_update_cart';
+    const BLACKFRIDAY_START = '2018-12-26 00:00:00';
+    const BLACKFRIDAY_END = '2019-01-06 23:59:59';
+    const CORE_VERSION_BEFORE_FEATURED_PRODUCTS = '1.11.4';
+    const CORE_VERSION_MIN_PRICE_CATEGORY_FEATURED_PRODUCTS = '1.27.4';
+    const CORE_VERSION_BEFORE_AVELON = '1.12.0';
+    const CORE_VERSION_AFTER_REMOVE_AVELON_REQUESTS = '1.27.14';
+    const TEST_ADVANCED_STOCKS = 'test_advanced_stocks';
+    const CORE_VERSION_BEFORE_SEPARATE_SIZE_GUIDE = '1.17.4';
+    const CRON_REMOVE_PRODUCTS = 'cron_remove_products';
+    const CRON_REMOVE_DISCOUNTS = 'cron_remove_discounts';
+    const CRON_UPDATE_PRODUCTS_MIN_PRICE  = 'cron_update_products_min_price';
+    const COUPON_BARCODES = 'coupon_barcode';
+    const DELETE_PRODUCT_FROM_SPECIAL_ORDER = 'delete_product_from_special_order';
+
+
+    const ID_GROUP_SIZES = 2;
+
+    protected $id_lang_default;
+    protected $_productGroup = array('featured', 'onsale', 'best_seller', 'most_view', 'new');
+    protected $_linkObj;
+    protected $use_images_krackonline = true;
+
+    private $typeRequest = null;
+    private $isCodeBar = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->id_lang_default = Configuration::get('PS_LANG_DEFAULT');
+    }
+
+    protected function _getResponse()
+    {
+        $data = array();
+
+        // request type. Use in switch
+        $type = Tools::getValue('type');
+
+        // main parameter
+        $param = Tools::getValue('param');
+
+        // Clarks' terminals
+        $idClarks = json_decode(Tools::getValue('id'));
+        $categoryClarks = Tools::getValue('category');
+
+        // params use in search product. Add ability to search by category
+        $param2 = Tools::getValue('params2');
+
+        $appVersion = Tools::getValue('xmlsync_app_version');
+
+
+        // additional params
+        // load order setting from admin panel
+        $defaultOrder = 'position';
+        $defaultOrderDir = 'ASC';
+
+        // other parameter
+        $orderBy = Tools::getValue('orderby', $defaultOrder);
+
+        if (!in_array($orderBy, array('date', 'id', 'name'))) {
+            //$orderBy = 'id';
+            $orderBy = 'position';
+        } else {
+            switch ($orderBy) {
+                case 'date' :
+                    $orderBy = 'date_add';
+                    break;
+                case 'id' :
+                    $orderBy = 'id_product';
+                    break;
+                case 'name' :
+                    $orderBy = 'name';
+                    break;
+            }
+        }
+
+        $filterManufacturer = Tools::getValue('manufacturer', null);
+        $filterFixedManufacturer = Tools::getValue('fixed_manufacturer', null);
+        if ($filterFixedManufacturer) {
+            $filterManufacturer = $filterFixedManufacturer;
+        }
+        $filterSize = Tools::getValue('size', null);
+        $filterColor = Tools::getValue('color', null);
+        $filterFrom = Tools::getValue('from', 0);
+        $filterTo = Tools::getValue('to', 0);
+        $filterOrder = Tools::getValue('order');
+        $filterFeatures = Tools::getValue('feature');
+        $filterTacon = Tools::getValue('tacon');
+        $filterMaterial = Tools::getValue('material');
+        $filterAvailableInStoreRef = Tools::getValue('available_in_store_ref');
+
+        $order = Tools::getValue('order', $defaultOrderDir);
+        if (!in_array($order, array('asc', 'desc'))) {
+            $order = 'desc';
+        }
+        $page = Tools::getValue('page', 1);
+        $perPage = Tools::getValue('per_page', 10);
+        $id_user = Tools::getValue('customer_id') ?: Tools::getValue('id_user');
+
+        $this->typeRequest = $type;
+
+        // get product by type
+        switch ($type) {
+            case self::REQUEST_TYPE:
+                if ($param && in_array(strtolower($param), $this->_productGroup)) {
+                    $fn = '_get' . ucfirst(str_replace('_', '', $param));
+                    $data = $this->$fn($page, $perPage, $orderBy, $order, $param2);
+                }
+                break;
+            case self::REQUEST_SINGLE:
+                if ($param && is_numeric($param)) {
+                    $id_tienda = Tools::getValue("id_tienda");
+                    $data = $this->_getSingleProduct($param,$id_tienda, $id_user);
+                }
+                break;
+            case self::REQUEST_CATEGORY:
+                if ($param && is_numeric($param)) {
+                    //$data = $this->_getCategoryProducts($param, $page, $perPage, $order, $orderBy);
+                    $id_tienda = Tools::getValue("id_tienda");
+                    $get_featured_products = Tools::getValue('get_featured_products');
+                    $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                    $type = 1;
+//                    $data = $this->_getProductWithFilter($param, $filterManufacturer, null, null, 0, 5000, $filterOrder, $page, $perPage,$id_tienda);
+                    $data = $this->filterProductsByCriteria($type,null, null, 0, 500, $filterOrder, $page, $perPage,$id_tienda,$param,$filterManufacturer,null,$use_stores_availability,"",null,null,null,$id_user,$get_featured_products,$appVersion);
+
+                    $categoryImage = null;
+                    $categoryImageUrl = null;
+                    $categoryIdUrl = null;
+                    $categoryTypeUrl = null;
+                    $sql = "SELECT image, url, type, id FROM ". _DB_PREFIX_ ."category_image_url WHERE id_category=$param";
+                    $responseSql = Db::getInstance()->executeS($sql);
+                    if ($responseSql && count($responseSql[0]) > 0) {
+                        $categoryImage = $responseSql[0]['image'];
+                        $categoryImageUrl = $responseSql[0]['url'];
+                        $categoryIdUrl = $responseSql[0]['id'];
+                        $categoryTypeUrl = $responseSql[0]['type'];
+                    }
+
+                    if (isset($data) && $data != null && is_array($data)) {
+                        $data['categoryImage'] = $categoryImage;
+                        $data['categoryImageUrl'] = $categoryImageUrl;
+                        $data['categoryIdUrl'] = $categoryIdUrl;
+                        $data['categoryTypeUrl'] = $categoryTypeUrl;
+                    } else if(isset($data) && $data != null && !is_array($data)) {
+                        $data->categoryImage = $categoryImage;
+                        $data->categoryImageUrl = $categoryImageUrl;
+                        $data->categoryIdUrl = $categoryIdUrl;
+                        $data->categoryTypeUrl = $categoryTypeUrl;
+                    }
+
+                }
+                break;
+            case self::REQUEST_SEARCH:
+                if ($param) {
+                    if ($param2) {
+                        $category = $param2;
+                    } else {
+                        $category = null;
+                    }
+                    $id_tienda = Tools::getValue("id_tienda");
+                    $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                    $type = 3;
+
+//                    $data = $this->_searchProduct($param, $page, $perPage, "DESC", "id_product", $category, $id_tienda);
+                    $data = $this->filterProductsByCriteria($type,$filterSize,$filterColor,$filterFrom,$filterTo,$filterOrder,$page,$perPage,$id_tienda,null,$filterManufacturer,$param,$use_stores_availability,"",null,null,null,$id_user,false,$appVersion);
+                }
+                break;
+            case self::REQUEST_TAG:
+                if ($param) {
+                    $data = $this->_getProductWtTag($param, $page, $perPage, $orderBy, $order);
+                }
+                break;
+            case self::MY_REQUEST_FILTER:
+                $id_tienda = Tools::getValue("id_tienda");
+                $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                $type = 1;
+//                $data = $this->_getProductWithFilter($param, $filterManufacturer, $filterSize, $filterColor, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda);
+                $data = $this->filterProductsByCriteria($type,$filterSize, $filterColor, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda,$param,$filterManufacturer,null,$use_stores_availability,"",null,null,null,$id_user,false,$appVersion);
+                break;
+            case self::MY_REQUEST_FILTER_BY_MANUFACTURER:
+                $id_tienda = Tools::getValue("id_tienda");
+                $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                $type = 0;
+//                $data = $this->_getProductWithFilterByManufacturer($param, $filterSize, $filterColor, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda);
+                $data = $this->filterProductsByCriteria($type,$filterSize, $filterColor, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda,null,$param,null,$use_stores_availability,"",null,null,null,$id_user,false,$appVersion);
+                break;
+            case self::MY_REQUEST_RANGE_PRICES:
+                if ($param && is_numeric($param)) {
+                    $data = $this->_getRangePricesToCategory($param);
+                }
+                break;
+            case self::MY_REQUEST_RANGE_PRICES_BY_MANUFACTURER:
+                if ($param && is_numeric($param)) {
+                    $data = $this->_getRangePricesToManufacturer($param);
+                }
+                break;
+            case self::MY_REQUEST_MANUFACTURER:
+                //$data = $this->_getProductsByManufacturer($param, $page, $perPage);
+                $id_tienda = Tools::getValue("id_tienda");
+                $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                $type = 0;
+//                $data = $this->_getProductWithFilterByManufacturer($param, null, null, 0, 5000, $filterOrder, $page, $perPage,$id_tienda);
+                $data = $this->filterProductsByCriteria($type,null, null, 0, 5000, $filterOrder, $page, $perPage,$id_tienda,null,$param,null,$use_stores_availability,"",null,null,null,$id_user,false,$appVersion);
+                break;
+            case self::REQUEST_CLARKS:
+                $id_tienda = Tools::getValue("id_tienda");
+                $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                $type = "clarks";
+                $data = $this->filterProductsByCriteria($type,null, null, 0, 5000, $filterOrder, $page, $perPage,$id_tienda,$categoryClarks,$idClarks,null,$use_stores_availability,"",null,null,null,$id_user,false,$appVersion);
+                break;
+            case self::MY_ADVANCED_FILTERS:
+                $id_tienda = Tools::getValue("id_tienda");
+                $use_stores_availability = (bool)$id_tienda && $id_tienda !== 'false';
+                $id_category = Tools::getValue('id_category');
+                $id_manufacturer = Tools::getValue('id_marca');
+                $keywords = Tools::getValue('key_busqueda');
+                if($id_manufacturer == "" || $id_manufacturer == " "){
+                    $id_manufacturer = null;
+                }
+                if($id_category == "" || $id_category == " "){
+                    $id_category = null;
+                }
+                if($keywords == "" || $keywords == " "){
+                    $keywords = null;
+                }
+                if($filterFrom || $filterTo || $filterColor || $filterSize || $filterFeatures || $filterTacon || $filterMaterial || ($id_manufacturer && $id_manufacturer !== null)){
+                    $get_featured_products = false;
+                }else{
+                    $get_featured_products = true;
+                }
+
+//                var_dump("parametros -> ",$id_tienda," ",$id_category," ",$id_manufacturer," ",$keywords);
+                $type = 3;
+                $data = $this->filterProductsByCriteria($type,$filterSize,$filterColor,$filterFrom,$filterTo,$filterOrder,$page,$perPage,$id_tienda,$id_category,$id_manufacturer,$keywords,$use_stores_availability,null,$filterFeatures,$filterAvailableInStoreRef,null,$id_user,$get_featured_products,$appVersion,$filterTacon,$filterMaterial,1);
+                break;
+            case self::GET_RELATED_PRODUCTS:
+                $id_manufacturer = Tools::getValue("id_manufacturer");
+                $id_color = Tools::getValue("id_color");
+                $categories = Tools::getValue("categories");
+                $id_tienda = Tools::getValue('id_tienda');
+                $id_product_not_show = Tools::getValue('id_product_not_show');
+                $array_categories = explode(",",$categories);
+                $finalCategories = [];
+                foreach ($array_categories as $id_cate){
+                    $category = new CategoryCore($id_cate);
+                    if($category->level_depth > 2 && $category->name[1] != "Todos los zapatos" && $category->name[1] != "Todo lo nuevo"){
+                        array_push($finalCategories,$id_cate);
+                    }
+                }
+                $categories = implode(",",$finalCategories);
+                $data = $this->filterProductsByCriteria(1,null,$id_color,0,5000,5,1,5,$id_tienda,$categories,$id_manufacturer,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+//                var_dump("length -> ",sizeof($data));
+                if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                    $data = $data->listProduct;
+                }
+                if(sizeof($data) < 5){
+                    foreach ($data as $p){
+                        $id_product_not_show .= ",".$p['id'];
+                    }
+                    $morerelated = $this->filterProductsByCriteria(1,null,null,0,5000,5,1,5-sizeof($data),$id_tienda,$categories,$id_manufacturer,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+                    if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                        $morerelated = $morerelated->listProduct;
+                    }
+                    foreach ($morerelated as $product){
+                        $id_product_not_show .= ",".$product['id'];
+                        array_push($data,$product);
+                    }
+                    if(sizeof($data) < 5){
+                        $morerelated = $this->filterProductsByCriteria(1,null,null,0,5000,5,1,5-sizeof($data),$id_tienda,null,$id_manufacturer,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+                        if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                            $morerelated = $morerelated->listProduct;
+                        }
+                        foreach ($morerelated as $product){
+                            $id_product_not_show .= ",".$product['id'];
+                            array_push($data,$product);
+                        }
+                        if(sizeof($data) < 5){
+                            $morerelated = $this->filterProductsByCriteria(1,null,$id_color,0,5000,5,1,5-sizeof($data),$id_tienda,$categories,null,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+                            if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                                $morerelated = $morerelated->listProduct;
+                            }
+                            foreach ($morerelated as $product){
+                                $id_product_not_show .= ",".$product['id'];
+                                array_push($data,$product);
+                            }
+                            if(sizeof($data) < 5){
+                                $morerelated = $this->filterProductsByCriteria(1,null,null,0,5000,5,1,5-sizeof($data),$id_tienda,$categories,null,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+                                if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                                    $morerelated = $morerelated->listProduct;
+                                }
+                                foreach ($morerelated as $product){
+                                    $id_product_not_show .= ",".$product['id'];
+                                    array_push($data,$product);
+                                }
+                                if(sizeof($data) < 5){
+                                    $morerelated = $this->filterProductsByCriteria(1,null,$id_color,0,5000,5,1,5-sizeof($data),$id_tienda,null,null,null,false,$id_product_not_show,null,null,null,$id_user,false,$appVersion);
+                                    if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVersion) < 0){
+                                        $morerelated = $morerelated->listProduct;
+                                    }
+                                    foreach ($morerelated as $product){
+                                        $id_product_not_show .= ",".$product['id'];
+                                        array_push($data,$product);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            case self::GET_OTHER_COLORS:
+                $id_product = Tools::getValue('id_product_not_show');
+                $id_tienda = Tools::getValue('id_tienda');
+                $data = $this->getSameProductOtherColors($id_product,$id_tienda,$id_user);
+                break;
+            case self::GET_SIZES:
+                $id_product = Tools::getValue('id_product');
+                $data = $this->getSizesBlock($id_product);
+                break;
+            case self::GET_ALL_PRODUCTS:
+                $data = $this->getJsonFromFile();
+                break;
+            case self::GET_ALL_PRODUCTS_CRON:
+                $data = $this->_getAllProductLight();
+                $this->_generateJsonProductsFile($data);
+                break;
+            case self::GET_PRODUCT_VIDEOS_CRON:
+                $data = $this->importProductVideos();
+                break;
+            case self::GET_ID_PRODUCT_LOCAL:
+                if ($param && is_numeric($param)) {
+                    $data = $this->getIdProductLocal($param);
+                }
+                break;
+            case self::GET_PRODUCT_FOR_UPDATE:
+                $data = [];
+                $products = json_decode(Tools::getValue('products'));
+                for ($i = 0; $i < count($products); $i++) {
+                    if (isset($products[$i]) && $products[$i] != null) {
+                        $product = $this->_getOneProductForApi($products[$i]);
+                        array_push($data, $product);
+                    }
+                }
+                break;
+            case self::GET_PRODUCT_FOR_UPDATE_CART:
+                $data = [];
+                $products = json_decode(Tools::getValue('products'));
+                $attributes = json_decode(Tools::getValue('attributes'));
+                $id_tienda = Tools::getValue("id_tienda");
+                if(isset($id_tienda) && $id_tienda >0){
+                    $istienda= $id_tienda;
+                }else{
+                    $istienda= null;
+                }
+                for ($i = 0; $i < count($products); $i++) {
+                    if (isset($products[$i]) && $products[$i] != null && isset($attributes[$i]) && $attributes[$i] != null) {
+                        $product_attribute = Db::getInstance()->getValue("
+                        SELECT ppa.id_product_attribute 
+                        FROM `" . _DB_PREFIX_ . "product_attribute_combination` ppac
+                        JOIN `" . _DB_PREFIX_ . "product_attribute` ppa ON ppac.id_product_attribute = ppa.id_product_attribute
+                        WHERE ppac.id_attribute = ".$attributes[$i]." AND ppa.id_product = ".$products[$i]." ");
+                        $product = $this->_getOneProductForApi($products[$i],false,null,null,$istienda,'',false, $product_attribute);
+                        array_push($data, $product);
+                    }
+                }
+                break;
+            case self::CRON_PRODUCTS_ORDERED:
+                $data = $this->cronProductsOrdered();
+                break;
+            case self::TEST_ADVANCED_STOCKS:
+                $data = self::calcAdvancedStocksAvelon(32, '354924', $this);
+                break;
+            case self::CRON_REMOVE_PRODUCTS:
+                $data = self::removeProductsOutOfKO();
+                break;
+            case self::CRON_REMOVE_DISCOUNTS:
+                $data = self::removeDiscountsOutOfKO();
+                break;
+            case self::CRON_UPDATE_PRODUCTS_MIN_PRICE:
+                $data = self::updateProductsMinPrice();
+                break;
+            case self::COUPON_BARCODES:
+                $data = self::addProductsBarcodes();
+                break;
+            case self::DELETE_PRODUCT_FROM_SPECIAL_ORDER:
+                $data = self::deleteProductFromSpecialOrder();
+                break;
+            default:
+                $orderBy = 'position';
+                $data = $this->_getAllProduct($page, $perPage, $orderBy, $order);
+                break;
+        }
+
+        return $data;
+    }
+
+    protected function _getFormatedAddress(Address $the_address, $line_sep, $fields_style = array())
+    {
+        return AddressFormat::generateAddress($the_address, array('avoid' => array()), $line_sep, ' ', $fields_style);
+    }
+
+    protected function _getSingleProduct($param,$id_tienda = null, $id_user){
+        if($id_user != ''){
+            $sqlGetUserGroups = "select id_group from ps_customer_group where id_customer = $id_user;";
+            $customerGroups = Db::getInstance()->executeS($sqlGetUserGroups);
+            if(!empty($customerGroups)){
+                $numItems = count($customerGroups);
+                $i = 0;
+                $id_groups = '';
+                foreach($customerGroups as $key => $value) {
+                    if(++$i === $numItems) {
+                        $id_groups = $id_groups.$value['id_group'];
+                    }else{
+                        $id_groups = $id_groups.$value['id_group'].",";
+                    }
+                }
+            }else{
+                $id_groups = '';
+            }
+        }else{
+            $id_groups = '';
+        }
+
+        return $this->_getOneProductForApi($param,false,null,null,$id_tienda, $id_groups);
+    }
+
+    private function get_rating_html($star, $count = null)
+    {
+        $width = intval($star) * 20;
+        return '
+            <div class="rate">
+                <span style="width: ' . $width . '%;"></span>
+            </div>
+            <span class="count">(' . $count . ')</span>
+        ';
+    }
+    /**
+     *  Get Single Product Info by id_product
+     *
+     * @param int $reference_product
+     * @return array
+     */
+    private function _getOneProductFromAvelon($productRef,$idTienda){
+
+
+        $url = "http://conexion1.globalretail.es:48764/Webservice/EStoreWebService.asmx";
+        $action = "AvelonRMS.eStore.WS/GetItemInfo";
+
+        $mySOAP = <<<EOD
+<?xml version="1.0" encoding="utf-8" ?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:avel="AvelonRMS.eStore.WS">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <avel:GetItemInfo>
+             <avel:itemId>{$productRef}</avel:itemId>
+          </avel:GetItemInfo>
+       </soapenv:Body>
+    </soapenv:Envelope>
+EOD;
+        //var_dump($mySOAP);
+        $headers = array(
+            'Content-Type: text/xml; charset=utf-8',
+            'Content-Length: '.strlen($mySOAP),
+            'SOAPAction: '.$action
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $mySOAP);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        // Check if any error occurred
+        if(curl_errno($ch))
+        {
+            $this->AppLog->saveExtra('Curl error _getOneProductFromAvelon:', serialize(curl_error($ch)));
+        }
+
+        $result = curl_exec($ch);
+
+        curl_close($ch);
+
+        $result = str_replace('xmlns="AvelonRMS.eStore.WS"', '',$result);
+        $result = str_replace('xsi:type="StockForItemResult"', '',$result);
+        $result = str_replace('<soap:Body>', '',$result);
+        $result = str_replace('</soap:Body>', '',$result);
+
+        //libxml_use_internal_errors(true);
+
+        $xmlobj = simplexml_load_string($result);
+
+        $infoStock = $xmlobj->children()->children()->children();
+        $sizeLabels = [];
+        $prices = [];
+        $stocks = [];
+        if ($infoStock) {
+            $detailsInfoStock = $infoStock->Details;
+            if ($detailsInfoStock) {
+                $detailsSizeLabels = $detailsInfoStock->SizeLabels;
+                if ($detailsSizeLabels) {
+                    $sizeLabels = $detailsSizeLabels->children();
+                }
+
+                $detailsActivePrices = $detailsInfoStock->ActivePrices;
+                if ($detailsActivePrices) {
+                    $prices = $detailsActivePrices->children();
+                }
+            }
+            $stockInfoStock = $infoStock->Stock;
+            if ($stockInfoStock) {
+                $stocks = $stockInfoStock->children();
+            }
+        }
+        $movementRequests = $infoStock->MovementRequests;
+        $jpegBase64 = (string)$infoStock->Details->JpegBase64;
+
+        //var_dump("Precio del producto -> ",$prices[0]);
+
+        $sqlGetIdLocal = "SELECT id_product from ps_product where reference like '".$productRef."'";
+        $responseGetIdLocal = Db::getInstance()->executeS($sqlGetIdLocal);
+        if(!empty($responseGetIdLocal)){
+            $idProductLocal = $responseGetIdLocal[0]['id_product'];
+            $sqlGetIdKrack = "select id_krack from gk_products_local where id_local = $idProductLocal";
+            $responseGetIdKrack = Db::getInstance()->executeS($sqlGetIdKrack);
+            if(!empty($responseGetIdKrack)){
+                $idProductKrack = $responseGetIdKrack[0]['id_krack'];
+            }else{
+                $idProductKrack = null;
+            }
+        }else{
+            $idProductLocal = null;
+            $idProductKrack = null;
+        }
+        $images = array();
+        $img = new stdClass();
+        $img->src = "data:image/jpeg;base64,".$jpegBase64;
+        $img->title = (string)$infoStock->Details->Style;
+
+        array_push($images,$img);
+
+        $productReturn = array(
+            "id" => $idProductLocal,
+            "id_krack" => $idProductKrack,
+            "name" => (string)$infoStock->Details->Style,
+            "reference" => $productRef,
+            "default_image" => null,
+            "status" => null,
+            "price" => isset($prices[0]) ? (double)$prices[0] : 0.00,
+            "regular_price" => isset($prices[0]) ? (double)$prices[0] : 0.00,
+            "sale_price" => isset($prices[0]) ? (double)$prices[0] : 0.00,
+            "reduction_price" => array(),
+            "manufacturerName" => (string)$infoStock->Details->BrandName,
+            "on_sale" => false,
+            "purchasable" => false,
+            "images" => $images,
+            "default_attributes" => null,
+            "variations" => null,
+            "advanced_stocks" => self::calcAdvancedStocksAvelon($idTienda,$productRef, $this),
+            "haveReductions" => false,
+            "priceWithReduction" => isset($prices[0]) ? (string)$prices[0] : '0.00',
+            "isFromAvelon" => true
+        );
+
+        return $productReturn;
+    }
+
+    /**
+     *  Get Single Product Info by id_product
+     *
+     * @param int $id_product
+     * @return array
+     */
+    private function _getOneProductForApi($id_product, $imFiltering = false, $from = null, $to = null,$id_tienda = null,$id_groups = '',$featuredProduct = false, $id_attribute = null)
+    {
+        $appVersion = Tools::getValue('xmlsync_app_version');
+
+        $product = new Product($id_product, '', $this->id_lang_default, Configuration::get('PS_SHOP_DEFAULT'));
+        $rating = '';
+        $rating_html = '';
+        $rating_count = '';
+        $arrayFeatures = array();
+        if (Module::isInstalled('productcomments') && Module::isEnabled('productcomments')) {
+            if (file_exists(dirname(dirname(dirname(dirname(__FILE__)))) . '/productcomments/ProductComment.php')) {
+                include_once dirname(dirname(dirname(dirname(__FILE__)))) . '/productcomments/ProductComment.php';
+                $ratingDatas = ProductComment::getRatings($id_product);
+                if (!empty($ratingDatas)) {
+                    $rating = ProductComment::getRatings($id_product)['avg'];
+                    $rating_html = $this->get_rating_html($rating, $rating_count);
+                    $rating_count = ProductComment::getGradedCommentNumber($id_product);
+                }
+            }
+        }
+
+        $this->_linkObj = new Link();
+        $variationAndAttribute = $this->_getAllVariationsOfProduct($product);
+
+        foreach ($product->getFeatures() as $featureObject) {
+            $featureValue = Db::getInstance()->executeS("SELECT `value` FROM `" . _DB_PREFIX_ . "feature_value_lang` WHERE `id_feature_value` = " . $featureObject['id_feature_value'] . " AND `id_lang` = " . (int)$this->id_lang_default . " ");
+            $feature = Db::getInstance()->executeS("SELECT `name` FROM `" . _DB_PREFIX_ . "feature_lang` WHERE `id_feature` = " . $featureObject['id_feature'] . " AND `id_lang` = " . (int)$this->id_lang_default . " ");
+
+            $arrayFeatures[] = new MyFeature($feature, $featureValue);
+        }
+
+        $defaultImage = Db::getInstance()->executeS("SELECT `id_image` FROM `" . _DB_PREFIX_ . "image` WHERE `id_product` =  " . $product->id . " AND `cover` = 1 ORDER BY id_image DESC");
+
+        if($id_groups != ''){
+            $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now())) and sp.id_group in ($id_groups) ;");
+            if(empty($arrayPricesProduct)){
+                if($id_attribute !== null) {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON 0 = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND sp.id_product_attribute = {$id_attribute} AND quantity > -1 and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and spsub1.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and spsub2.`id_product_attribute` = " . $id_attribute . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and spsub3.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now())) and sp.id_group = 0;");
+                } else {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now())) and sp.id_group = 0;");
+                }
+                foreach ($arrayPricesProduct as $key => $discount) {
+                    if ($discount['id_group'] != 0) {
+                        if($id_attribute !== null) {
+                            $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON 0 = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND sp.id_product_attribute = = {$id_attribute} AND quantity > -1 and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and spsub1.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and spsub2.`id_product_attribute` = " . $id_attribute . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and spsub3.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()))and sp.id_group != 0 order by reduction desc limit 1;");
+                        } else {
+                            $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()))and sp.id_group != 0 order by reduction desc limit 1;");
+                        }
+                        break;
+                    }
+                }
+            }else{
+               if(count($arrayPricesProduct) > 1){
+                   $temporalPricesProduct = array();
+                   $maxDiscount = 0;
+                   foreach ($arrayPricesProduct as $key => $discount){
+                       if($discount['reduction'] > $maxDiscount){
+                           $temporalPricesProduct = array();
+                           array_push($temporalPricesProduct,$discount);
+                           $maxDiscount = $discount['reduction'];
+                       }
+                   }
+                   $arrayPricesProduct = $temporalPricesProduct;
+               }
+            }
+        }else{
+            if($id_tienda && $id_tienda != 'false'){
+                if($id_attribute !== null) {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `" . _DB_PREFIX_ . "specific_price` sp LEFT JOIN `" . _DB_PREFIX_ . "stock_available` sa ON 0 = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND sp.id_product_attribute = {$id_attribute} AND quantity > -1 AND sp.id_group = 0 AND `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and spsub1.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and spsub2.`id_product_attribute` = " . $id_attribute . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and spsub3.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()));");
+                } else {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `" . _DB_PREFIX_ . "specific_price` sp LEFT JOIN `" . _DB_PREFIX_ . "stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) AND sp.id_group = 0 AND `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()));");
+                }
+            }else{
+                if($id_attribute !== null) {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON 0 = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND sp.id_product_attribute = {$id_attribute} AND quantity > -1 and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and spsub1.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and spsub2.`id_product_attribute` = " . $id_attribute . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and spsub3.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()));");
+                } else {
+                    $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()));");
+                }
+                foreach ($arrayPricesProduct as $key => $discount) {
+                    if ($discount['id_group'] != 0) {
+                        if($id_attribute !== null) {
+                            $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON 0 = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND sp.id_product_attribute = {$id_attribute} AND quantity > -1 and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and spsub1.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and spsub2.`id_product_attribute` = " . $id_attribute . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and spsub3.`id_product_attribute` = " . $id_attribute . " and `from` <= now() and `to` >= now()))and sp.id_group != 0 order by reduction desc limit 1;");
+                        } else {
+                            $arrayPricesProduct = Db::getInstance()->executeS("SELECT sp.* FROM `ps_specific_price` sp LEFT JOIN `ps_stock_available` sa ON sp.id_product_attribute = sa.id_product_attribute AND sp.id_product = sa.id_product WHERE sp.`id_product` = " . $product->id . " AND (sp.id_product_attribute = 0 OR quantity > -1) and `from` in (SELECT IF(MAX(spsub1.`from`) is null,'000-00-00 00:00:00',MAX(spsub1.`from`)) as `from` FROM `ps_specific_price` spsub1 WHERE spsub1.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()) and `to` in (SELECT spsub2.`to` FROM `ps_specific_price` spsub2 WHERE spsub2.`id_product` = " . $product->id . " and `to` in (SELECT IF(MAX(spsub3.`to`) is null,'0000-00-00 00:00:00',MAX(spsub3.`to`)) as `to` FROM `ps_specific_price` spsub3 WHERE spsub3.`id_product` = " . $product->id . " and `from` <= now() and `to` >= now()))and sp.id_group != 0 order by reduction desc limit 1;");
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        $arrayReductionsProduct = array();
+
+        if (is_array($arrayPricesProduct)) {
+
+            foreach ($arrayPricesProduct as $keyRegister => $price) {
+                $isRepeat = false;
+                if ($keyRegister != 0) {
+                    $agrupaDescuentosVariantes = !Tools::getValue('xmlsync_app_version') || (strpos(Tools::getValue('xmlsync_app_version'), 'd') === false && version_compare(Tools::getValue('xmlsync_app_version'), "1.0.9", "<"));
+                    if($agrupaDescuentosVariantes) {
+                    foreach ($arrayReductionsProduct as $reductionProduct) {
+                        if ($reductionProduct->quantity == $price['reduction'] && $reductionProduct->type == $price['reduction_type'] && $reductionProduct->from == $price['from'] && $reductionProduct->to == $price['to']) {
+                            $isRepeat = true;
+                            break;
+                        }
+                    }
+                    }
+                    if (!$isRepeat) {
+                        $reductionQuantity = $price['reduction'];
+                        $reductionType = $price['reduction_type'];
+                        $reductionDateFrom = $price['from'];
+                        $reductionDateTo = $price['to'];
+                        $idProductAttribute = $price['id_product_attribute'];
+                        $arrayReductionsProduct[] = new Reduction($reductionQuantity, $reductionType, $reductionDateFrom, $reductionDateTo, $idProductAttribute);
+                    }
+                }
+                if ($keyRegister == 0) {
+                    $reductionQuantity = $price['reduction'];
+                    $reductionType = $price['reduction_type'];
+                    $reductionDateFrom = $price['from'];
+                    $reductionDateTo = $price['to'];
+                    $idProductAttribute = $price['id_product_attribute'];
+                    $arrayReductionsProduct[] = new Reduction($reductionQuantity, $reductionType, $reductionDateFrom, $reductionDateTo, $idProductAttribute);
+                }
+            }
+        } else {
+            $arrayReductionsProduct[] = new Reduction($arrayPricesProduct['reduction'], $arrayPricesProduct['reduction_type'], $arrayPricesProduct['from'], $arrayPricesProduct['to'], $arrayPricesProduct['id_product_attribute']);
+        }
+
+        $hayDescuentos = false;
+        foreach($arrayPricesProduct as $reduction) {
+            if($reduction['reduction'] && $reduction['reduction'] != 0) {
+                $hayDescuentos = true;
+            }
+        }
+
+        if(!$hayDescuentos) {
+            $arrayReductionsProduct = array();
+        }
+        $product->reductionPrice = $arrayReductionsProduct;
+
+        $priceWithIva = 0;
+        $defaultImageToSend = "";
+        $urlDefaultImageToSend = "";
+
+        if($id_tienda && $id_tienda != "false") {
+            if($id_attribute !== null) {
+                $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product LEFT JOIN ps_stock_available psad ON psad.id_product_attribute = 0 AND psad.id_product = p.id_product WHERE p.id_product = {$product->id} AND pa.id_product_attribute = {$id_attribute} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY pa.`id_product_attribute` ORDER BY NULL;");
+            } else {
+                $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product LEFT JOIN ps_stock_available psad ON psad.id_product_attribute = 0 AND psad.id_product = p.id_product WHERE p.id_product = {$product->id} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY p.`id_product` ORDER BY NULL;");
+            }
+        } else {
+            if($id_attribute !== null) {
+                $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product LEFT JOIN ps_stock_available psad ON psad.id_product_attribute = 0 AND psad.id_product = p.id_product WHERE p.active = 1 AND if(psa.id_stock_available IS NOT NULL, psa.quantity, psad.quantity) > 0 AND p.id_product = {$product->id} AND pa.id_product_attribute = {$id_attribute} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY pa.`id_product_attribute` ORDER BY NULL;");
+            } else {
+                $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product LEFT JOIN ps_stock_available psad ON psad.id_product_attribute = 0 AND psad.id_product = p.id_product WHERE p.active = 1 AND if(psa.id_stock_available IS NOT NULL, psa.quantity, psad.quantity) > 0 AND p.id_product = {$product->id} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY p.`id_product` ORDER BY NULL;");
+            }
+        }
+
+        if (count($priceWithIvaFromSql) == 0) {
+            if($id_tienda && $id_tienda != "false") {
+                if($id_attribute !== null) {
+                    $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product WHERE p.id_product = {$product->id} AND pa.id_product_attribute = {$id_attribute} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY pa.`id_product_attribute` ORDER BY NULL;");
+                } else {
+                    $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product WHERE p.id_product = {$product->id} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY p.`id_product` ORDER BY NULL;");
+                }
+            } else {
+                if ($id_attribute !== null) {
+                    $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product WHERE p.active = 1 AND p.id_product = {$product->id} AND pa.id_product_attribute = {$id_attribute} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY pa.`id_product_attribute` ORDER BY NULL;");
+                } else {
+                    $priceWithIvaFromSql = Db::getInstance()->executeS("SELECT min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price, IF(pa.price IS NOT NULL AND  pa.price > 0, pa.price, p.price)) * 1.21, 2)) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product /*AND pa.price > 0*/ LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0 LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product WHERE p.active = 1 AND p.id_product = {$product->id} AND ((pa.price IS NOT NULL AND pa.price > 0) OR (pas.price IS NOT NULL AND pas.price > 0) OR p.price > 0) GROUP BY p.`id_product` ORDER BY NULL;");
+                }
+            }
+        }
+
+        if (isset($priceWithIvaFromSql[0]['finalprice'])) {
+            $priceWithIva = (float)$priceWithIvaFromSql[0]['finalprice'];
+        }
+
+        if (isset($defaultImage[0]['id_image'])) {
+            $defaultImageToSend = $defaultImage[0]['id_image'];
+        }
+
+        /*
+         * Le rompía a Axel
+         * $priceWithoutIva = $priceWithoutIvaFromSql[0]['price'];
+         * $priceWithIva = $priceWithoutIva + ($priceWithoutIva * 0.21);
+         *  $defaultImageToSend = $defaultImage[0]['id_image'];
+        */
+
+        $id_product_krack = DB::getInstance()->executeS("SELECT `id_krack` FROM `gk_products_local` WHERE `id_local` = " . $product->id);
+
+        $type = 'simple';
+        if(count($variationAndAttribute['variations']) > 1) {
+            $type = 'variable';
+        } else {
+            $type = 'simple';
+
+            foreach($product->getCategories() as $categoryId) {
+                if($categoryId == 377 || $categoryId == 378 || $categoryId == 379) {
+                    $type = 'variable';
+                    break;
+                }
+            }
+        }
+        $advanced_stocks = [];
+
+        /*
+         * In apps with core version lower that constant CORE_VERSION_AFTER_REMOVE_AVELON_REQUESTS load advanced_stocks always.
+         * In apps with core version equal or higher, load advanced_stocks only in single products loads.
+         * */
+        if (version_compare(self::CORE_VERSION_AFTER_REMOVE_AVELON_REQUESTS, $appVersion) < 1) {
+            /*
+             * Load advanced_stocks only in single products loads and when the user is a store_user
+             */
+            if (($this->typeRequest == self::REQUEST_SINGLE || $this->typeRequest == self::GET_PRODUCT_FOR_UPDATE_CART || (($this->typeRequest == self::MY_ADVANCED_FILTERS || $this->typeRequest == self::REQUEST_SEARCH) && $this->isCodeBar)) && $id_tienda && $id_tienda != 'false') {
+                $advanced_stocks = self::calcAdvancedStocksAvelon($id_tienda,$product->reference, $this);
+            }
+        } else {
+            /*Code for milestone 0.2.0 app tiendas*/
+            if($id_tienda && $id_tienda != 'false'){
+                if(version_compare(self::CORE_VERSION_BEFORE_AVELON,$appVersion) < 0){
+                    $advanced_stocks = self::calcAdvancedStocksAvelon($id_tienda,$product->reference, $this);
+                }else{
+                    $advanced_stocks = self::calcAdvancedStocks($id_tienda, $product->id, $product->reference);
+                }
+            }
+        }
+        $productmanufacturer = new Manufacturer($product->id_manufacturer);
+
+        $sqlGetIdVideo = "SELECT id_video from ps_product_videos where provider like 'youtube' and id_video not like '' and id_video is not null and id_product = ".$product->id;
+
+        $id_youtube_video = null;
+        $youtube_video_thumbnail = "https://img.youtube.com/vi/";
+        $responseGetIdVideo = Db::getInstance()->executeS($sqlGetIdVideo);
+        if(!empty($responseGetIdVideo)){
+            $id_youtube_video = $responseGetIdVideo[0]['id_video'];
+            $youtube_video_thumbnail .= $responseGetIdVideo[0]['id_video'];
+            $youtube_video_thumbnail .= "/mqdefault.jpg";
+        }
+
+        $sizeArrayModal = $this->checkSizesProductInOrders($product->id);
+
+        $arrayImages = $this->handleArrayImageForProduct($this->_linkObj, $product->getImages($this->id_lang_default), $product->id, $id_product_krack ? $id_product_krack[0]['id_krack'] : '');
+
+        $productReturn = array(
+            "id" => $product->id,
+            "id_krack" => $id_product_krack ? $id_product_krack[0]['id_krack'] : '',
+            "name" => $product->name,
+            "slug" => $product->link_rewrite,
+            "reference" => $product->reference,
+            "array_categories_id" => $product->getCategories(),
+            "permalink" => _PS_BASE_URL_ . __PS_BASE_URI__ . 'module/icymobi/products?type=single&param=' . $product->id . '',
+            "date_created" => $product->date_add,
+            "date_modified" => $product->date_upd,
+            "default_image" => $defaultImageToSend,
+            "type" => $type,
+//            "type" => (count($variationAndAttribute['variations']) > 1) ? 'variable' : 'simple',
+            "status" => $product->active,
+            "featured" => $arrayFeatures,
+            "catalog_visibility" => ($product->visibility == 'both' || $product->visibility == 'catalog') ? 'visiable' : 'none',
+            "description" => strip_tags($product->description, '<p><br><span><strong><b><em><i>'),
+            "short_description" => strip_tags($product->description_short, '<p><br><span><strong><b><em><i>'),
+            "sku" => "",
+            "price" => $priceWithIva,
+//            "price" => $product->getPrice(),
+            "regular_price" => $product->getPriceWithoutReduct(),
+            "sale_price" => $priceWithIva,
+//            "sale_price" => $product->getPrice(),
+//            "priceWithoutIva" => $priceWithoutIvaFromSql,
+            "reduction_price" => $product->reductionPrice,
+            "date_on_sale_from" => $product->available_date,
+            "date_on_sale_to" => "",
+            "price_html" => "",
+            "manufacturerName" => $productmanufacturer->name,
+            "on_sale" => $this->isDisplayOnSale($product),
+            "purchasable" => true,
+            "total_sales" => $this->getTotalSalesOnProduct($product),
+            "virtual" => $product->is_virtual,
+            "downloadable" => "",
+            "downloads" => array(),
+            "download_limit" => "",
+            "download_expiry" => "",
+            "download_type" => "",
+            "external_url" => "",
+            "button_text" => "",
+            "tax_status" => "",
+            "tax_class" => "",
+            "manage_stock" => (bool)($product->useAdvancedStockManagement()),
+            "stock_quantity" => StockAvailable::getQuantityAvailableByProduct($product->id),
+            "in_stock" => $this->isDisplayInStock($product),
+            "backorders" => $product->isAvailableWhenOutOfStock((int)$product->out_of_stock) ? 'yes' : 'no',
+            "backorders_allowed" => (bool)$product->isAvailableWhenOutOfStock((int)$product->out_of_stock),
+            "backordered" => (bool)$product->isAvailableWhenOutOfStock((int)$product->out_of_stock),
+            "sold_individually" => (bool)false,
+            "weight" => $product->weight,
+            "dimensions" => array(
+                "length" => $product->depth,
+                "width" => $product->width,
+                "height" => $product->height
+            ),
+            "shipping_required" => true,
+            "shipping_taxable" => true,
+            "shipping_class" => "",
+            "shipping_class_id" => "",
+            "reviews_allowed" => true,
+            "average_rating" => $rating,
+            "rating_count" => $rating_count,
+            "rating_star_html" => $rating_html,
+            "related_ids" => array(),
+            "upsell_ids" => array(),
+            "cross_sell_ids" => array(),
+            "parent_id" => "",
+            "purchase_note" => "",
+            "categories" => $this->handleArrayCategoriesForProduct($product->getProductCategoriesFull($product->id)),
+            "tags" => $product->tags[$this->id_lang_default],
+            "images" => $arrayImages,
+            "attributes" => $variationAndAttribute['attr'],
+            "default_attributes" => array(),
+            "variations" => count($variationAndAttribute['variations']) > 0 ?$variationAndAttribute['variations'] : [['attributes' => []]],
+            "grouped_products" => array(),
+            "menu_order" => 0,
+            "_links" => array(
+                "self" => array(
+                    array(
+                        "href" => _PS_BASE_URL_ . __PS_BASE_URI__ . 'module/icymobi/products?type=single&param=' . $product->id . '',
+                    )
+                ),
+                "collection" => array(
+                    array(
+                        "href" => ""
+                    )
+                )
+            ),
+            "advanced_stocks" => $advanced_stocks,
+            "id_manufacturer" => $product->id_manufacturer,
+            "descriptionManufacturer" =>$productmanufacturer->description[1],
+            "id_youtube_video" => $id_youtube_video,
+            "youtube_video_thumbnail" => $youtube_video_thumbnail,
+            "sizeArrayModal" => $sizeArrayModal,
+            "featuredProduct" => $featuredProduct
+        );
+
+        if ($productReturn["default_image"] == "" || !$productReturn["default_image"] || count($productReturn["images"]) == 0 || !$productReturn["images"]) {
+            if ($id_tienda != "") {
+                $url = "http://conexion1.globalretail.es:48764/Webservice/EStoreWebService.asmx";
+                $action = "AvelonRMS.eStore.WS/GetItemInfo";
+
+                $mySOAP = <<<EOD
+<?xml version="1.0" encoding="utf-8" ?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:avel="AvelonRMS.eStore.WS">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <avel:GetItemInfo>
+             <avel:itemId>{$product->reference}</avel:itemId>
+          </avel:GetItemInfo>
+       </soapenv:Body>
+    </soapenv:Envelope>
+EOD;
+                $headers = array(
+                    'Content-Type: text/xml; charset=utf-8',
+                    'Content-Length: '.strlen($mySOAP),
+                    'SOAPAction: '.$action
+                );
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_POST, TRUE);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $mySOAP);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+                // Check if any error occurred
+                if(curl_errno($ch))
+                {
+                    $this->AppLog->saveExtra('Curl error _getOneProductForApi:', serialize(curl_error($ch)));
+                }
+                $result = curl_exec($ch);
+
+                curl_close($ch);
+
+                $result = str_replace('xmlns="AvelonRMS.eStore.WS"', '',$result);
+                $result = str_replace('xsi:type="StockForItemResult"', '',$result);
+                $result = str_replace('<soap:Body>', '',$result);
+                $result = str_replace('</soap:Body>', '',$result);
+
+                $xmlobj = simplexml_load_string($result);
+                $infoStock = $xmlobj->children()->children()->children();
+                $objectImages = $infoStock->Details->JpegBase64;
+                $listAvelonImages = json_decode(json_encode($objectImages), true);
+                $defAvelonImage = 'data:image/jpeg;base64,' . $listAvelonImages[0];
+                $arrayAvelonImage = [];
+                $avelonObjectImage = ['src'=> $defAvelonImage, 'title'=> (string)$product->id];
+                array_push($arrayAvelonImage, $avelonObjectImage);
+                $productReturn["default_image"] = null;
+                $productReturn["images"] = $arrayAvelonImage;
+            }
+        }
+
+        foreach ($arrayImages as $image) {
+            if ($image['id'] == $defaultImageToSend) {
+                $urlDefaultImageToSend = $image['src'];
+            }
+        }
+
+        $productReturn['default_image_url'] = $urlDefaultImageToSend;
+
+        if (version_compare($appVersion, self::CORE_VERSION_BEFORE_SEPARATE_SIZE_GUIDE) < 1) {
+            $listSizes = $this->getBothSizesProductLists($product->id, $variationAndAttribute['variations']);
+            $showSizesTable = false;
+            for($i = 0; $i<count($listSizes[0]); $i++) {
+                if ($listSizes[0][$i] != $listSizes[1][$i]) {
+                    $showSizesTable = true;
+                    break;
+                }
+            }
+
+            $productReturn['listSizes'] = $listSizes;
+            $productReturn['showSizesTable'] = $showSizesTable;
+        }
+
+        if( $this->_existsPriceUnderMinAllowedColumn() ) {
+            $price_under_min_allowed = Db::getInstance()->getRow(
+                "SELECT `price_under_min_allowed` FROM `". _DB_PREFIX_ ."product` WHERE `id_product` = ". (int) $product->id
+            );
+
+            $productReturn['price_under_min_allowed'] = $price_under_min_allowed['price_under_min_allowed'];
+        }
+
+//        if($returnThisProductWithFilter) {
+        return $productReturn;
+//        } else {
+//            return null;
+//        }
+    }
+
+    public function isDisplayInStock(Product $product, $id_product_attribute = null)
+    {
+        if ($product->active != 1) {
+            return false;
+        }
+        if ($product->available_for_order == false) {
+            return false;
+        }
+        if ($id_product_attribute) {
+            if (StockAvailable::getQuantityAvailableByProduct(null, $id_product_attribute) <= 0) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        if (StockAvailable::getQuantityAvailableByProduct($product->id) <= 0) {
+            return false;
+        } elseif (Configuration::get('PS_STOCK_MANAGEMENT')) {
+            return true;
+        }
+    }
+
+    public function isDisplayOnSale(Product $product, $id_product_attribute = null)
+    {
+        $productPriceWithoutReduction = $product->getPriceWithoutReduct();
+
+        if ($productPriceWithoutReduction <= 0) {
+            return false;
+        }
+        $specificPrices = SpecificPrice::getByProductId($product->id);
+
+        if (!$specificPrices) {
+            return false;
+        }
+        #check for variations
+        if ($id_product_attribute) {
+            $specificPriceByCombination = SpecificPrice::getByProductId($product->id, $id_product_attribute);
+            if (!$specificPriceByCombination) {
+                foreach ($specificPrices as $specificPrice) {
+                    if ($specificPrice['id_product_attribute'] == 0 && $specificPrice['reduction'] != 0) {
+                        return true;
+                    }
+                }
+            } else {
+                $specificPrices[] = $specificPriceByCombination;
+            }
+        }
+
+        foreach ($specificPrices as $specificPrice) {
+            if(isset($specificPrice['reduction'])) {
+                if ($specificPrice['reduction'] != 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function _getAllVariationsOfProduct(Product $product)
+    {
+        $arrayVariations = array();
+        # all ids of Product's variations
+        $ids = $product->getProductAttributesIds($product->id, Configuration::get('PS_SHOP_DEFAULT'));
+
+        foreach ($ids as $id) {
+            $arrayVariations[] = $this->_getDetailVariation($product->id, $id['id_product_attribute'], $this->id_lang_default);
+        }
+        # Attributes get form all $allVariations
+        $attributes = array();
+        $arrayRawAttr = array();
+        # array Attributes use to this Product's variations
+        $arrayFormatAttr = array();
+
+        if (count($arrayVariations) > 1) {
+            foreach ($arrayVariations as $r1) {
+                $attributes[] = $r1['attributes'];
+            }
+            # Flat array $attributes
+            $allAttrTmp = call_user_func_array('array_merge', $attributes);
+            # Clean array $result unique
+            foreach ($allAttrTmp as $aat) {
+                foreach ($arrayRawAttr as $r1) {
+                    if ($r1['id_attribute'] == $aat['id_attribute']) {
+                        continue 2;
+                    }
+                }
+                $arrayRawAttr[] = $aat;
+            }
+            # All attrribute in setting
+            $allSetAttr = $this->getAllAttributeOfProduct();
+            foreach ($allSetAttr as $key => $attr) {
+                foreach ($arrayRawAttr as $r) {
+                    if ($attr['id_attribute_group'] == $r['id_attribute_group']) {
+                        $arrayFormatAttr[$key]['id'] = $attr['id_attribute_group'];
+                        $arrayFormatAttr[$key]['name'] = $attr['group_name'];
+                        $arrayFormatAttr[$key]['position'] = $attr['position'];
+                        $arrayFormatAttr[$key]['visible'] = '';
+                        $arrayFormatAttr[$key]['type'] = 'dropdown';
+                        $arrayFormatAttr[$key]['options'][] = array(
+                            'name' => $r['option'],
+                            'value' => $r['option']
+                        );
+                        $arrayFormatAttr[$key]['variation'] = (is_array($arrayFormatAttr[$key]['options']) && count($arrayFormatAttr[$key]['options'] > 0)) ? true : false;
+                    }
+                }
+            }
+            # reset key
+            $arrayFormatAttr = array_values($arrayFormatAttr);
+        }
+
+        $this->formatArrayVariationsByRefenrence($arrayVariations);
+
+        $CombinationAndAttr = array(
+            'variations' => $arrayVariations,
+            'attr' => $arrayFormatAttr
+        );
+        return $CombinationAndAttr;
+    }
+
+    public function formatArrayVariationsByRefenrence(&$arrayVariations)
+    {
+        foreach ($arrayVariations as &$var) {
+            $productObject = new Product($var['id_product']);
+            $var['id'] = (int)$var['id_product_attribute'];
+            $var['permalink'] = '';
+            $var['sku'] = '';
+            $var['regular_price'] = intval(($var['price']) ?: 0);
+            $var['sale_price'] = intval(($var['price']) ?: 0);
+            $var['date_on_sale_from'] = '';
+            $var['date_on_sale_to'] = '';
+            $var['on_sale'] = $this->isDisplayOnSale($productObject, $var['id_product_attribute']);
+            $var['purchasable'] = true;
+            $var['visible'] = '';
+            $var['virtual'] = '';
+            $var['downloadable'] = '';
+            $var['downloads'] = '';
+            $var['download_limit'] = '';
+            $var['download_expiry'] = '';
+            $var['tax_status'] = '';
+            $var['tax_class'] = '';
+            $var['manage_stock'] = '';
+//            $var['in_stock'] = $this->isDisplayInStock($productObject, $var['id_product_attribute']);
+            /*if($var['quantity'] > 0) {
+                $var['in_stock'] = true;
+            } else {
+                $var['in_stock'] = false;
+            }*/
+
+            $rQuantityVariation = Db::getInstance()->executeS('SELECT `quantity` FROM ps_stock_available WHERE `id_product_attribute` = ' . $var['id'] . ';');
+            if($rQuantityVariation && is_array($rQuantityVariation)) {
+                $quantity = $rQuantityVariation[0]['quantity'];
+                $var['zQuantity'] = 1;
+            } else if($rQuantityVariation && !is_array($rQuantityVariation)) {
+                $quantity = $rQuantityVariation['quantity'];
+                $var['zQuantity'] = 2;
+            } else {
+                $quantity = $var['quantity'];
+                $var['zQuantity'] = 3;
+            }
+            if($quantity > 0) {
+                $var['in_stock'] = true;
+            } else {
+                $var['in_stock'] = false;
+            }
+            $var['quantityStock'] = $quantity;
+
+            $var['stock_quantity'] = ($var['quantity'] > 0) ? true : false;
+            $var['quantity_total'] = $var['quantity'];
+            $var['backorders'] = $productObject->isAvailableWhenOutOfStock((int)$productObject->out_of_stock) ? 'yes' : 'no';
+            $var['backorders_allowed'] = (bool)$productObject->isAvailableWhenOutOfStock((int)$productObject->out_of_stock);
+            $var['backordered'] = $productObject->isAvailableWhenOutOfStock((int)$productObject->out_of_stock);
+            $var['weight'] = $var['weight'];
+            $var['dimensions'] = array(
+                "length" => '',
+                "width" => '',
+                "height" => ''
+            );
+            $var['shipping_class'] = '';
+            $var['shipping_class_id'] = '';
+            unset($var['id_product_attribute']);
+            unset($var['quantity']);
+            unset($var['weight']);
+        }
+    }
+
+    /**
+     * Get detail Variation by id_product_attribute (variation ID)
+     *
+     * @param int $id_product
+     * @param int $id_product_attribute
+     * @param int $id_lang
+     * @return array
+     */
+    private function _getDetailVariation($id_product, $id_product_attribute, $id_lang)
+    {
+        $rawVar = $this->getRawVariationById($id_product, $id_product_attribute, $id_lang);
+
+        $attribute = array();
+        //Get quantity of each variations
+        foreach ($rawVar as $row) {
+            foreach ($attribute as $value) {
+                if ($value['id_attribute'] == $row['id_attribute']) {
+                    continue 2;
+                }
+            }
+            $attribute[] = array(
+                'id_attribute' => $row['id_attribute'],
+                'name' => $row['group_name'],
+                'option' => $row['attribute_name'],
+                'id_attribute_group' => $row['id_attribute_group'],
+                'is_color_group' => $row['is_color_group'],
+                'attribute_name' => $row['attribute_name']
+            );
+        }
+        $rawVar[0]['image'] = $this->_handleImageForCombiantion($rawVar[0]['id_product_attribute']);
+        $rawVar[0]['attributes'] = $attribute;
+        return $rawVar[0];
+    }
+
+    /**
+     * Get array full info Images of Variations
+     * @param int $id_product_attribute
+     * @return string
+     */
+    private function _handleImageForCombiantion($id_product_attribute)
+    {
+        $rawArrayImages = $this->getImagesOfVariation($id_product_attribute);
+
+        $allImagesOfVariation = array();
+        if (!empty($rawArrayImages)) {
+            foreach ($rawArrayImages as $row) {
+                $allImagesOfVariation[] = array(
+                    "id" => $row['id_image'],
+                    "date_created" => "",
+                    "date_modified" => "",
+                    "src" => 'http://' . $this->_linkObj->getImageLink($id_product_attribute, $row['id_image']),
+                    "name" => "",
+                    "alt" => "",
+                    "position" => $row['position']
+                );
+            }
+        }
+        return $allImagesOfVariation;
+    }
+
+    public function getTotalSalesOnProduct(Product $product)
+    {
+        return '';
+    }
+
+    /**
+     *  Get array Images with full info
+     *
+     * @param Link $link
+     * @param array $arrayImages
+     * @param int $id_product
+     * @param int $id_product_krack
+     * @return array
+     */
+    protected function handleArrayImageForProduct($link, $arrayImages, $id_product, $id_product_krack)
+    {
+        foreach ($arrayImages as $key => &$image) {
+            if ($image['cover'] == 1) {
+                $this->moveElement($arrayImages, $key, 0);
+            }
+            $image['id'] = $image['id_image'];
+            $image['date_created'] = '';
+            $image['date_modified'] = '';
+
+            if($this->use_images_krackonline && $id_product_krack > 0){
+                $sql_image = "SELECT id_krack FROM gk_images_local WHERE id_local = '".$image['id_image']."'";
+                $result_image = Db::getInstance()->executeS($sql_image);
+                if($result_image && is_array($result_image) && isset($result_image[0]) && isset($result_image[0]["id_krack"])){
+                    $image['src'] = 'http://' . str_replace($_SERVER["SERVER_NAME"], KRACKONLINE_DATA_URL, $link->getImageLink($id_product_krack, $result_image[0]["id_krack"]));
+                } else {
+                    $image['src'] = '';
+                }
+            } else {
+                $image['src'] = 'http://' . $link->getImageLink($id_product, $image['id_image']);
+            }
+
+            //change www.krackonline.com to CDN (ccc1.krackonline.com)
+            $image['src'] = str_replace(KRACKONLINE_DATA_URL, KRACKONLINE_CDN, $image['src']);
+            $image['alt'] = "";
+
+            unset($image['id_image']);
+            unset($image['cover']);
+            unset($image['legend']);
+        }
+        return $arrayImages;
+    }
+
+    protected function moveElement(&$array, $a, $b)
+    {
+        $out = array_splice($array, $a, 1);
+        array_splice($array, $b, 0, $out);
+    }
+
+    protected function handleArrayCategoriesForProduct($arrayCategories)
+    {
+        foreach ($arrayCategories as &$cate) {
+            $cate['id'] = $cate['id_category'];
+            $cate['slug'] = $cate['link_rewrite'];
+            unset($cate['id_category']);
+        }
+        return $arrayCategories;
+    }
+
+    /**
+     * Get all product by id_category
+     *
+     * @param type $category_id
+     * @param type $order
+     * @param type $orderBy
+     * @return type
+     */
+    protected function _getCategoryProducts($category_id, $page = null, $per_page = null, $order = 'desc', $orderBy = null)
+    {
+        if ($page < 1) {
+            $page = 1;
+        }
+        if ($per_page < 1) {
+            $per_page = 1;
+        }
+
+        $orderBy = 'position';
+        $order = 'asc';
+
+        $categoryObject = new Category($category_id, $this->id_lang_default);
+        $productsData = $categoryObject->getProducts($this->id_lang_default, (int)$page, (int)$per_page, $orderBy, $order);
+
+        $products = array();
+        if (is_array($productsData) && !empty($productsData)) {
+            foreach ($productsData as $product) {
+                $products[] = $this->_getOneProductForApi(intval($product['id_product']));
+            }
+        }
+        return $products;
+    }
+
+    protected function getJsonFromFile(){
+        $fileName = 'products.json';
+        $filePath = __DIR__."/jsonfiles/";
+        $file = $filePath.$fileName;
+
+        if (file_exists($file)) {
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/json');
+            header('Content-Disposition: attachment; filename="'.basename($file).'"');
+            header('Expires: 0');
+            header('Content-Length: ' . filesize($file));
+            readfile($file);
+            exit;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * Get All product for you
+     *
+     * @param int $page
+     * @param int $perPage
+     * @param str $orderBy
+     * @param str $order
+     * @return array
+     */
+    protected function _getAllProduct($page, $perPage, $orderBy, $order)
+    {
+        if (!$page || $page < 1) {
+            $page = 1;
+        }
+        if (!$perPage || $perPage < 1) {
+            $perPage = 10;
+        }
+        $start = ($page - 1) * $perPage;
+        if (!$orderBy) {
+            $orderBy = 'position';
+        }
+        if (!$order) {
+            $order = 'asc';
+        }
+        $orderBy = 'position';
+        $order = 'asc';
+
+        $productsData = Product::getProducts($this->id_lang_default, $start, $perPage, $orderBy, $order);
+
+        $products = array();
+        if (is_array($productsData) && !empty($productsData)) {
+            foreach ($productsData as $product) {
+                $products[] = $this->_getOneProductForApi($product['id_product']);
+            }
+        }
+        return $products;
+    }
+
+    protected function _getAllProductLight()
+    {
+        $query = "select
+          pp.id_product as id,
+          pp.reference,
+          ppl.name,
+          pml.name as manufacturer,
+          min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price,
+                       IF(pa.price IS NOT NULL AND pa.price > 0, pa.price, pp.price)) * 1.21, 2)) AS price,
+          case
+          when psp.reduction_type like 'amount' then round(min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price,
+                  IF(pa.price IS NOT NULL AND pa.price > 0, pa.price,
+                  pp.price)) * 1.21, 2)) - psp.reduction,2)
+           else min(round(IF(pas.price IS NOT NULL AND pas.price > 0, pas.price,
+                          IF(pa.price IS NOT NULL AND pa.price > 0, pa.price, pp.price)
+                      ) * 1.21, 2)) * round((1 - psp.reduction) * 1.21,2) end as price_discount
+        from ps_product pp
+          LEFT JOIN ps_product_attribute pa ON pa.id_product = pp.id_product
+          LEFT JOIN ps_product_attribute_shop pas
+            ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute AND pas.price > 0
+          LEFT JOIN ps_product_lang ppl on ppl.id_product = pp.id_product and ppl.id_lang = 1
+          LEFT JOIN ps_specific_price psp on psp.id_product = pp.id_product
+          LEFT JOIN ps_manufacturer pml on pml.id_manufacturer = pp.id_manufacturer
+        WHERE pp.id_product IS NOT NULL
+        GROUP BY pp.`id_product`;";
+
+        $products = Db::getInstance()->executeS($query);
+        return $products;
+    }
+
+    protected function _generateJsonProductsFile($jsonData)
+    {
+        $formatData = array(
+            'message'   => null,
+            'status'    => 1,
+            'data'      => $jsonData
+        );
+        $fileContent = json_encode($formatData);
+
+        $fileName = "products.json";
+        $filePath = __DIR__."/jsonfiles/";
+        $completeFileName = $filePath . $fileName;
+        if (file_put_contents($completeFileName, $fileContent) !== false) {
+            echo "File created";
+        } else {
+            echo "Cannot create file";
+        }
+    }
+
+    /**
+     *
+     * @param string $param
+     * @param int $page
+     * @param int $perPage
+     * @param string $order
+     * @param string $orderBy
+     * @return array
+     */
+    protected function _searchProduct($param, $page, $perPage, $order, $orderBy, $id_category = null,$id_tienda = null)
+    {
+        if($id_tienda) {
+            $isTienda = true;
+            $isCodeBar = preg_match('/^(\\d{7,18})$/', $param);
+
+            if($isCodeBar) {
+                $isCodeBar = true;
+//                Se ha insertado un código de barras en el buscador
+                $codeBar = ltrim($param, 0);
+                if(strlen($codeBar) == 7) {
+                    $referenceProduct = substr($codeBar, 0, 5);
+                    $sizeProduct = substr($codeBar, 5, 2);
+                } else {
+                    $referenceProduct = substr($codeBar, 0, 6);
+                    $sizeProduct = substr($codeBar, 6, 2);
+                }
+
+                $sProductByCodeBar = "SELECT * FROM ps_product WHERE reference = '".$referenceProduct."' LIMIT 1;";
+                $productByCodeBar = Db::getInstance()->executeS($sProductByCodeBar);
+
+                $productReturned = null;
+
+                if(count($productByCodeBar) > 0) {
+                    $productReturned = $this->_getOneProductForApi($productByCodeBar[0]["id_product"], true, null, null, $id_tienda);
+                }
+
+                return ["isTienda" => $isTienda, "isCodeBar" => $isCodeBar, "codeBar" => $codeBar, "reference" => $referenceProduct, "size" => $sizeProduct, "listProducts" => $productReturned];
+            }
+        }
+
+        if ($orderBy) {
+            $orderBy = 'p.' . $orderBy;
+        }
+        $products = array();
+
+        $productsData = Search::find($this->id_lang_default, $param, $page, $perPage, $orderBy, $order, $ajax = false, $use_cookie = false, $context = null);
+
+        if ($productsData['result'] && !empty($productsData['result'])) {
+            foreach ($productsData['result'] as $product) {
+                $products[] = $this->_getOneProductForApi($product['id_product'],false,null,null,$id_tienda);
+            }
+        }
+        if ($id_category && Validate::isLoadedObject($categoryObject = new Category($id_category))) {
+            $resultByCate = array();
+            foreach ($products as $key => $product) {
+                if (!in_array($id_category, $product['array_categories_id'])) {
+//                        unset($products[$key]);
+                    $resultByCate[] = $products[$key];
+                }
+            }
+            return $resultByCate;
+        }
+        return $products;
+    }
+
+    /**
+     *
+     * @param type $param
+     * @param type $page
+     * @param type $perPage
+     * @param type $orderBy
+     * @param type $order
+     * @return type
+     */
+    private function _getProductWtTag($param, $page, $perPage, $orderBy, $order)
+    {
+        if ($orderBy) {
+            $orderBy = 'p.' . $orderBy;
+        }
+        $productsData = Search::searchTag($this->id_lang_default, $param, $count = false, $page, $perPage, $orderBy, $order, $useCookie = false, $context = null);
+
+        $products = array();
+        if (is_array($productsData) && !empty($productsData)) {
+            foreach ($productsData as $product) {
+                $products[] = $this->_getOneProductForApi($product['id_product']);
+            }
+        }
+        return $products;
+    }
+
+    #
+    #  ----- for Type
+    #
+
+    protected function _getFeatured()
+    {
+
+    }
+
+    protected function _getOnsale()
+    {
+
+    }
+
+    protected function _getBestseller($page, $per_page, $orderBy, $order)
+    {
+        if ($orderBy && !empty($orderBy)) {
+            $orderBy = 'p.' . $orderBy;
+        }
+        $productsData = ProductSale::getBestSales($this->id_lang_default, $page, $per_page, $orderBy, $order);
+
+        $products = array();
+
+        if (!empty($productsData) && is_array($productsData)) {
+            foreach ($productsData as $product) {
+                $products[] = $this->_getOneProductForApi($product['id_product']);
+            }
+        }
+        return $products;
+    }
+
+    protected function _getMostview()
+    {
+
+    }
+
+    protected function _getNew($page, $perPage, $orderBy, $order)
+    {
+        if ($orderBy !== '') {
+            $orderBy = 'p.' . $orderBy;
+        }
+        $productsData = Product::getNewProducts($this->id_lang_default, $page, $perPage, $count = false, $orderBy, $order, $context = null);
+        $products = array();
+        if (!empty($productsData) && is_array($productsData)) {
+            foreach ($productsData as $product) {
+                $products[] = $this->_getOneProductForApi($product['id_product']);
+            }
+        }
+        return $products;
+    }
+
+    public function getAllAttributeOfProduct()
+    {
+        return Db::getInstance()->executeS('SELECT a.id_attribute_group, a.position, al.name as group_name '
+            . ' FROM ' . _DB_PREFIX_ . 'attribute_group a '
+            . ' LEFT JOIN ' . _DB_PREFIX_ . 'attribute_group_lang al ON a.id_attribute_group = al.id_attribute_group '
+            . ' WHERE al.id_lang = ' . $this->id_lang_default . ' ');
+    }
+
+    /**
+     * Query product attribute combination by id_product_attribute
+     *
+     * @param int $id_product_attribute
+     * @param int $id_lang Language id
+     * @return array Product attribute combination by id_product_attribute
+     */
+    public function getRawVariationById($id_product, $id_product_attribute, $id_lang)
+    {
+        $productObject = new Product($id_product, '', $this->id_lang_default);
+        $combinationsData = $productObject->getAttributeCombinationsById($id_product_attribute, $id_lang);
+
+        if (!empty($combinationsData)) {
+            foreach ($combinationsData as &$combination) {
+                $combination['price'] = Product::getPriceStatic($id_product, $usetax = true, $id_product_attribute, 6, null, false, false);
+            }
+        }
+
+        return $combinationsData;
+    }
+
+    public function getImagesOfVariation($id_product_attribute)
+    {
+        $rawArrayImages = Db::getInstance()->executeS('
+			SELECT pai.`id_image`, pai.`id_product_attribute`, il.`legend`, i.position
+			FROM `' . _DB_PREFIX_ . 'product_attribute_image` pai
+			LEFT JOIN `' . _DB_PREFIX_ . 'image_lang` il ON (il.`id_image` = pai.`id_image`)
+			LEFT JOIN `' . _DB_PREFIX_ . 'image` i ON (i.`id_image` = pai.`id_image`)
+			WHERE pai.`id_product_attribute` = ' . $id_product_attribute . ' AND il.`id_lang` = ' . (int)$this->id_lang_default . ' ORDER by i.`position`'
+        );
+        if (!$rawArrayImages) {
+            return array();
+        }
+        return $rawArrayImages;
+    }
+
+    public function filterProductsByCriteria($type,$filterSize = null, $filterColor = null, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda = null, $id_categoria = null, $id_marca = null, $keyword = null,$use_stores_availability = false,$idproductnotshow = "",$features = null, $filterAvailableInStoreRef = null, $id_product_other_colors = null,$id_user = '',$get_featured_products = false,$appVesion = false,$tacon = null,$material = null,$searchApp = 0){
+        if($id_user != ''){
+            $sqlGetUserGroups = "select id_group from ps_customer_group where id_customer = $id_user;";
+            $customerGroups = Db::getInstance()->executeS($sqlGetUserGroups);
+            if(!empty($customerGroups)){
+                $numItems = count($customerGroups);
+                $i = 0;
+                $id_groups = '';
+                foreach($customerGroups as $key => $value) {
+                    if(++$i === $numItems) {
+                        $id_groups = $id_groups.$value['id_group'];
+                    }else{
+                        $id_groups = $id_groups.$value['id_group'].",";
+                    }
+                }
+            }else{
+                $id_groups = '';
+            }
+        }else{
+            $id_groups = '';
+        }
+
+        $tienda = Tools::getValue('tienda');
+        $productsResult = array();
+        $filterFrom = str_replace(".", ",", $filterFrom);
+        $filterTo = str_replace(".", ",", $filterTo);
+        $filterFrom = (int)$filterFrom;
+        $filterTo = (int)$filterTo;
+
+        if($filterTo == 0){$filterTo = 5000;}
+        if($type == 0 || $type == 3){
+            $prefixIdProduct = 'p';
+        }else{
+            $prefixIdProduct = 'cp';
+        }
+
+        if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+            if($get_featured_products){
+                $basesql = "SELECT ".$prefixIdProduct.".`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage',round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice, (p.`destacado` AND p.price_under_min_allowed = 0) AS `destacado` ";
+            }else{
+                $basesql = "SELECT ".$prefixIdProduct.".`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice ";
+            }
+        }else{
+            $basesql = "SELECT ".$prefixIdProduct.".`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice ";
+        }
+        $from = "";
+        $joins = "LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product ";
+
+        if ($use_stores_availability) {
+            $wheres = "WHERE ";
+            if ($filterAvailableInStoreRef) {
+                $wheres .= "if(size0_label = pal.name, asis.size0_stock, if(size1_label = pal.name, asis.size1_stock, if(size2_label = pal.name, asis.size2_stock, if(size3_label = pal.name, asis.size3_stock, if(size4_label = pal.name, asis.size4_stock, if(size5_label = pal.name, asis.size5_stock, if(size6_label = pal.name, asis.size6_stock, if(size7_label = pal.name, asis.size7_stock, if(size8_label = pal.name, asis.size8_stock, if(size9_label = pal.name, asis.size9_stock, if(size10_label = pal.name, asis.size10_stock, if(size11_label = pal.name, asis.size11_stock, if(size12_label = pal.name, asis.size12_stock, if(size13_label = pal.name, asis.size13_stock, if(size14_label = pal.name, asis.size14_stock, if(size15_label = pal.name, asis.size15_stock, if(size16_label = pal.name, asis.size16_stock, if(size17_label = pal.name, asis.size17_stock, if(size18_label = pal.name, asis.size18_stock, if(size19_label = pal.name, asis.size19_stock, if(size20_label = pal.name, asis.size20_stock, if(size21_label = pal.name, asis.size21_stock, 0)))))))))))))))))))))) > 0 AND ";
+            }
+            $wheres .= "if(size0_label = pal.name, ai.size0_stock, if(size1_label = pal.name, ai.size1_stock, if(size2_label = pal.name, ai.size2_stock, if(size3_label = pal.name, ai.size3_stock, if(size4_label = pal.name, ai.size4_stock, if(size5_label = pal.name, ai.size5_stock, if(size6_label = pal.name, ai.size6_stock, if(size7_label = pal.name, ai.size7_stock, if(size8_label = pal.name, ai.size8_stock, if(size9_label = pal.name, ai.size9_stock, if(size10_label = pal.name, ai.size10_stock, if(size11_label = pal.name, ai.size11_stock, if(size12_label = pal.name, ai.size12_stock, if(size13_label = pal.name, ai.size13_stock, if(size14_label = pal.name, ai.size14_stock, if(size15_label = pal.name, ai.size15_stock, if(size16_label = pal.name, ai.size16_stock, if(size17_label = pal.name, ai.size17_stock, if(size18_label = pal.name, ai.size18_stock, if(size19_label = pal.name, ai.size19_stock, if(size20_label = pal.name, ai.size20_stock, if(size21_label = pal.name, ai.size21_stock, 0)))))))))))))))))))))) > 0";
+        } else {
+            $wheres = "WHERE p.`active` = 1 AND psa.quantity > 0";
+        }
+        if ($id_product_other_colors) {
+            $joins .= " left join ps_product_lang ppl on ppl.id_product = p.id_product AND ppl.id_lang = 1";
+            $wheres .= " AND ppl.name like (select name from ps_product_lang where id_product = $id_product_other_colors AND id_lang = 1 group by id_product) 
+AND p.id_manufacturer in (select id_manufacturer from ps_product where id_product = $id_product_other_colors)
+AND p.id_product != $id_product_other_colors";
+        }
+
+        $having = "";
+        $orders = "";
+//        var_dump("id_marca -> ",$id_marca," id_categoria -> ",$id_categoria," keyword -> ",$keyword," tipo -> ",$type);
+        if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+            if($get_featured_products === 'true'){
+                if($this->_existsPriceUnderMinAllowedColumn() && $tienda === 'false') {
+                    $order = "ORDER BY p.price_under_min_allowed ASC, p.destacado DESC, ";
+                } else {
+                    $order = "ORDER BY p.destacado DESC, ";
+                }
+            }else{
+                if(version_compare(self::CORE_VERSION_MIN_PRICE_CATEGORY_FEATURED_PRODUCTS,$appVesion) <= 0 && $searchApp == 0) {
+                        if ($this->_existsPriceUnderMinAllowedColumn() && $tienda === 'false') {
+                            $order = "ORDER BY p.price_under_min_allowed ASC, ";
+                            $wheres .= ' AND (p.destacado = 0 OR p.price_under_min_allowed = 1) ';
+                        } else {
+                            $wheres .= ' AND p.destacado = 0 ';
+                            $order = "ORDER BY ";
+                        }
+                    } else {
+                    $order = "ORDER BY ";
+                }
+            }
+        }else{
+            $order = "ORDER BY ";
+        }
+
+        if($type == 1 || $type === "clarks"){
+            if ($filterOrder == 1) {
+                $order .= " finalprice ASC ";
+            } else if ($filterOrder == 2) {
+                $order .= " finalprice DESC ";
+            } else if ($filterOrder == 3) {
+                $order .= " p.date_add ASC ";
+            } else if ($filterOrder == 4) {
+                $order .= " p.date_add DESC ";
+            } else {
+                $order .= " cp.position ASC ";
+
+            }
+            $from = "FROM `" . _DB_PREFIX_ . "category_product` cp ";
+            $joins = "LEFT JOIN `ps_product` p ON p.id_product = cp.id_product ".$joins;
+            if($id_categoria != null){
+                $wheres = $wheres." AND cp.`id_category` IN (" . $id_categoria . ") ";
+            }
+//            var_dump("Category -> ",$id);
+
+        }else if($type == 0){
+            if ($filterOrder == 1) {
+                $order .= " finalprice ASC ";
+            } else if ($filterOrder == 2) {
+                $order .= " finalprice DESC ";
+            } else if ($filterOrder == 3) {
+                $order .= " p.date_add ASC ";
+            } else if ($filterOrder == 4) {
+                $order .= " p.date_add DESC ";
+            } else {
+                $order .= " id_product DESC ";
+            }
+            $from = "FROM `" . _DB_PREFIX_ . "product` p ";
+          $wheres = $wheres . " AND p.`id_manufacturer` = " . $id_marca . " ";
+//            var_dump("Manufacturer -> ",$id);
+        }else if($type == 3){
+            //            var_dump("Busqueda desde la nueva función");
+            if($id_categoria != "" && $id_categoria != " " && $id_categoria !== null && $id_categoria){
+                $wheres = $wheres." AND cp.id_category IN (".$id_categoria.")";
+                $joins = $joins." LEFT JOIN ps_category_product cp ON p.id_product=cp.id_product ";
+            }
+            $from = "FROM `" . _DB_PREFIX_ . "product` p ";
+            if ($filterOrder == 1) {
+                $order .= " finalprice ASC ";
+            } else if ($filterOrder == 2) {
+                $order .= " finalprice DESC ";
+            } else if ($filterOrder == 3) {
+                $order .= " p.date_add ASC ";
+            } else if ($filterOrder == 4) {
+                $order .= " p.date_add DESC ";
+            } else {
+                //$order = " ORDER BY p.position ASC ";
+                $order .= " id_product DESC ";
+            }
+            if($keyword !== NULL){
+                if($id_tienda) {
+                    $isTienda = true;
+                    $isCodeBar = preg_match('/^(\\d{5,18})$/', $keyword);
+
+                    if($isCodeBar) {
+                        $isCodeBar = true;
+//                Se ha insertado un código de barras en el buscador
+                        $codeBar = ltrim($keyword, 0);
+                        if(strlen($codeBar) < 7){
+                            $referenceProduct = $codeBar;
+                            $sizeProduct = 0;
+                        } elseif(strlen($codeBar) == 7) {
+                            $referenceProduct = substr($codeBar, 0, 5);
+                            $sizeProduct = substr($codeBar, 5, 2);
+                        } else {
+                            $referenceProduct = substr($codeBar, 0, 6);
+                            $sizeProduct = substr($codeBar, 6, 2);
+                        }
+
+                        $sProductByCodeBar = "SELECT * FROM ps_product WHERE reference = '".$referenceProduct."' ORDER BY id_product DESC LIMIT 1;";
+                        $productByCodeBar = Db::getInstance()->executeS($sProductByCodeBar);
+
+                        $productReturned = null;
+
+                        if(count($productByCodeBar) > 0) {
+                            $this->isCodeBar = $isCodeBar;
+                            $productReturned = $this->_getOneProductForApi($productByCodeBar[0]["id_product"], true, null, null, $id_tienda,$id_groups,false);
+                        }else{
+                            if(version_compare(self::CORE_VERSION_BEFORE_AVELON,$appVesion) < 0){
+                                $productReturned = $this->_getOneProductFromAvelon($referenceProduct,$id_tienda);
+                            }
+                        }
+                        if($productReturned != null){
+                            return ["isTienda" => $isTienda, "isCodeBar" => $isCodeBar, "codeBar" => $codeBar, "reference" => $referenceProduct, "size" => $sizeProduct, "listProducts" => $productReturned];
+                        }
+                    }
+                }
+                $orderSearch = "DESC";
+                $orderBy = 'p.id_product';
+                $products = array();
+//            var_dump("Antes del find");
+                $productsData = Search::find($this->id_lang_default, $keyword, 1, 9999, $orderBy, $orderSearch, $ajax = false, $use_cookie = false, $context = null);
+//            var_dump("IDS FOR SQL -> ",$productsData);
+                if ($productsData['result'] && !empty($productsData['result'])) {
+                    $idsProducts = "";
+                    foreach ($productsData['result'] as $product) {
+                        $idsProducts = $idsProducts.$product['id_product'].",";
+                    }
+                $idsProductsForSQL = substr($idsProducts,0,-1);
+//            var_dump("Resultados de la  busqueda de texto -> ",$idsProductsForSQL);
+                $wheres = $wheres." AND p.id_product in (".$idsProductsForSQL.") ";
+                }else{
+                    throw new Exception("No se encontraron productos con ese nombre");
+                }
+            }
+        }
+        if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+            $groupby = " GROUP BY ".$prefixIdProduct.".`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . ((int)$perPage+1) . ";";
+        }else{
+            $groupby = " GROUP BY ".$prefixIdProduct.".`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+        }
+
+        //Filtro solo por talla, tanto desde marcas como desde una categoría.
+        if (is_null($id_marca) && !is_null($filterSize) && is_null($filterColor)) {
+//            var_dump("Filtrando por talla");
+            $joins = $joins." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute";
+            $wheres = $wheres." AND pac.id_attribute IN (" .$filterSize.")";
+        }
+
+        //Filtro solo por color, tanto desde marcas como desde una categoría.
+        if (is_null($id_marca) && is_null($filterSize) && !is_null($filterColor)) {
+//            var_dump("Filtrando por color");
+            $joins = $joins." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute";
+            $wheres = $wheres." AND pac.id_attribute IN (" .$filterColor.")";
+        }
+
+        //Filtro solo por fabricante desde categorías
+        if ($type && !is_null($id_marca) && is_null($filterSize) && is_null($filterColor)) {
+            if ($type === "clarks") {
+                $wheres = $wheres . " AND p.`id_manufacturer` IN (" . $id_marca[0] . ", " . $id_marca[1] . ")";
+            } else {
+                $wheres = $wheres . " AND p.`id_manufacturer` IN (" . $id_marca . ")";
+            }
+        }
+
+        //Filtro por fabricante y talla, desde marcas y categorías.
+        if (!is_null($id_marca) && !is_null($filterSize) && is_null($filterColor)) {
+//            var_dump("talla y fabricante");
+            $joins = $joins." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute";
+            $wheres = $wheres." AND pac.id_attribute IN ( " .$filterSize.") AND p.`id_manufacturer` IN ( " . $id_marca.")";
+        }
+        //filtro por talla y color tanto desde marcas como dsde categorías.
+        if(is_null($id_marca) && !is_null($filterSize) && !is_null($filterColor)){
+//            var_dump("talla y color");
+            $joins = $joins." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_product_attribute_combination pac2 ON pac2.id_product_attribute = pa.id_product_attribute ";
+
+            $wheres = $wheres." AND pac.id_attribute IN (" .$filterSize . ") AND pac2.`id_attribute` IN (" . $filterColor.")";
+        }
+
+        //Filtro por marcas y colores desde categorías
+        if (!is_null($id_marca) && is_null($filterSize) && !is_null($filterColor)) {
+//            var_dump("marca y color");
+            $joins = $joins."LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute ";
+            $wheres = $wheres." AND p.`id_manufacturer` IN (" . $id_marca . ") AND pac.id_attribute IN (" . $filterColor.")";
+        }
+
+        //Filtro por talla, color y fabricante
+        if (!is_null($id_marca) && !is_null($filterSize) && !is_null($filterColor)) {
+//            var_dump("fabricante, talla y color");
+          $joins = $joins."LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_product_attribute_combination pac2 ON pac2.id_product_attribute = pa.id_product_attribute ";
+          $wheres = $wheres." AND pac.id_attribute IN (" . $filterColor . ") AND pac2.id_attribute IN (" . $filterSize . ") AND p.`id_manufacturer` IN (" . $id_marca.")";
+        }
+
+        if ((!is_null($material) && $material && $material != 'undefined') || (!is_null($tacon) && $tacon && $tacon != 'undefined') || (!is_null($features) && $features && $features != 'undefined')) {
+            $wheres_features = "";
+            $joins_features = "";
+            if (!is_null($features) && $features && $features != 'undefined') {
+                $joins_features .= " LEFT JOIN ps_feature_product pfp on p.id_product=pfp.id_product ";
+                $wheres_features .= " AND pfp.id_feature_value IN (" . $features . ")";
+            }
+            if (!is_null($tacon) && $tacon && $tacon != 'undefined') {
+                $joins_features .= " LEFT JOIN ps_feature_product pfpt on p.id_product=pfpt.id_product ";
+                $wheres_features .= " AND pfpt.id_feature_value IN (" . $tacon . ")";
+            }
+            if (!is_null($material) && $material && $material != 'undefined') {
+                $joins_features .= " LEFT JOIN ps_feature_product pfpm on p.id_product=pfpm.id_product ";
+                $wheres_features .= " AND pfpm.id_feature_value IN (" . $material . ")";
+            }
+            $joins = $joins . $joins_features;
+            $wheres = $wheres . $wheres_features;
+        }
+
+        if ($use_stores_availability) {
+            $joins = $joins . " 
+  LEFT join ps_product_attribute_combination
+    on pa.id_product_attribute = ps_product_attribute_combination.id_product_attribute
+  LEFT join ps_attribute on ps_attribute.id_attribute = ps_product_attribute_combination.id_attribute
+  left join ps_attribute_lang pal on ps_attribute.id_attribute = pal.id_attribute and pal.id_lang = 1
+  LEFT join avelon_items ai on p.reference = ai.item_id
+  LEFT join avelon_sizeDomain asd on ai.sizeDomain_id = asd.sizeDomain_id
+                ";
+            if ($filterAvailableInStoreRef) {
+                $joins .= " left join avelon_stock_item_store asis on asis.item_id = p.reference and store_id = '$filterAvailableInStoreRef'";
+            }
+        } else {
+            $joins = $joins . " LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product ";
+        }
+
+        if($idproductnotshow != "" && $idproductnotshow != " " && $idproductnotshow !== null){
+            $wheres = $wheres." AND p.`id_product` NOT IN (".$idproductnotshow.")";
+        }
+
+        $finalSQL = $basesql.$from.$joins.$wheres.$groupby.$having.$orders;
+
+        if($_SERVER['REMOTE_ADDR'] == '88.20.228.58'){
+            // var_dump("FINAL SQL -> ",$finalSQL);die();
+        }
+        if ($finalSQL) {
+            $productsIdsAndPrices = Db::getInstance()->executeS($finalSQL);
+
+            if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+                $objectToReturn = new stdClass();
+            }
+            if(count($productsIdsAndPrices) == 11){
+                $lastItem = $lastItem = end($productsIdsAndPrices);
+            }else{
+                $lastItem = null;
+            }
+            foreach ($productsIdsAndPrices as $productIdPrice) {
+                if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+                    if($get_featured_products){
+                        if($productIdPrice['destacado'] == 0){
+                            $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda,$id_groups);
+                        }elseif($productIdPrice['destacado'] == 1){
+                            $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda,$id_groups,true);
+                        }
+                    }else{
+                        $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda,$id_groups);
+                    }
+                }else{
+            $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda,$id_groups);
+                }
+                if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+                    if ($lastItem !== $productIdPrice){
+                        if ($productReturned != null) {
+                            $productsResult[] = $productReturned;
+                        }
+                    }else{
+                        $flagProduct = $productReturned;
+                    }
+                }else{
+                    if ($productReturned != null) {
+                        $productsResult[] = $productReturned;
+                    }
+                }
+            }
+        }
+
+        if(version_compare(self::CORE_VERSION_BEFORE_FEATURED_PRODUCTS,$appVesion) < 0){
+            $objectToReturn->listProduct = $productsResult;
+            if(isset($flagProduct)){
+                $objectToReturn->flagProduct = $flagProduct;
+            }else{
+                $objectToReturn->flagProduct = $lastItem;
+            }
+
+            return $objectToReturn;
+        }else{
+            return $productsResult;
+        }
+    }
+
+    public function _getProductWithFilterByManufacturer($filterManufacturer, $filterSize = null, $filterColor = null, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda = null)
+    {
+        $productsIdsAndPrices = array();
+        $productsResult = array();
+        $productsSql = "";
+        $filterFrom = str_replace(".", ",", $filterFrom);
+        $filterTo = str_replace(".", ",", $filterTo);
+        $filterFrom = (int)$filterFrom;
+        $filterTo = (int)$filterTo;
+
+        if ($filterOrder == 1) {
+            $order = " ORDER BY finalprice ASC ";
+        } else if ($filterOrder == 2) {
+            $order = " ORDER BY finalprice DESC ";
+        } else if ($filterOrder == 3) {
+            $order = " ORDER BY p.date_add ASC ";
+        } else if ($filterOrder == 4) {
+            $order = " ORDER BY p.date_add DESC ";
+        } else {
+            //$order = " ORDER BY p.position ASC ";
+            $order = " ORDER BY id_product DESC ";
+        }
+
+//        Método para recuperar productos solo por su fabricante
+        if (is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = "SELECT p.`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage',round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND p.`id_manufacturer` = " . $filterManufacturer . " GROUP BY p.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su talla sin ningún otro filtro
+        if (!is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = "SELECT p.`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND p.`id_manufacturer` = " . $filterManufacturer . " AND pac.id_attribute = " . $filterSize . " GROUP BY p.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su color sin ningún otro filtro
+        if (is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = "SELECT p.`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND p.`id_manufacturer` = " . $filterManufacturer . " AND pac.id_attribute = " . $filterColor . " GROUP BY p.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su talla y color
+        if (!is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = "SELECT p.`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice FROM `ps_product` p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_product_attribute_combination pac2 ON pac2.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND p.`id_manufacturer` = " . $filterManufacturer . " AND pac.id_attribute = " . $filterSize . " AND pac2.`id_attribute` = " . $filterColor . " GROUP BY p.`id_product` ORDER BY NULL HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        var_dump($productsSql);
+        if ($productsSql) {
+            $productsIdsAndPrices = Db::getInstance()->executeS($productsSql);
+
+            foreach ($productsIdsAndPrices as $productIdPrice) {
+
+                $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda);
+                if ($productReturned != null) {
+                    $productsResult[] = $productReturned;
+                }
+
+            }
+        }
+
+        return $productsResult;
+    }
+
+    public function _getProductWithFilter($idCategory, $filterManufacturer = null, $filterSize = null, $filterColor = null, $filterFrom, $filterTo, $filterOrder, $page, $perPage,$id_tienda = null)
+    {
+        $productsIdsAndPrices = array();
+        $productsResult = array();
+        $productsSql = "";
+        $filterFrom = str_replace(".", ",", $filterFrom);
+        $filterTo = str_replace(".", ",", $filterTo);
+        $filterFrom = (int)$filterFrom;
+        $filterTo = (int)$filterTo;
+
+        $order = " ";
+
+        $base_query = "SELECT cp.`id_product`, min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage', round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))) AS finalprice FROM `" . _DB_PREFIX_ . "category_product` cp LEFT JOIN `ps_product` p ON p.id_product = cp.id_product LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute";
+
+        if ($filterOrder == 1) {
+            $order = " ORDER BY finalprice ASC ";
+        } else if ($filterOrder == 2) {
+            $order = " ORDER BY finalprice DESC ";
+        } else if ($filterOrder == 3) {
+            $order = " ORDER BY p.date_add ASC ";
+        } else if ($filterOrder == 4) {
+            $order = " ORDER BY p.date_add DESC ";
+        } else {
+            $order = " ORDER BY cp.position ASC ";
+        }
+
+//        Método para recuperar productos solo por su categoría
+        if (is_null($filterManufacturer) && is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND cp.`id_category` = " . $idCategory . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su fabricante sin ningún otro filtro
+        if (!is_null($filterManufacturer) && is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND cp.`id_category` = " . $idCategory . " AND p.`id_manufacturer` = " . $filterManufacturer . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su fabricante y talla
+        if (!is_null($filterManufacturer) && !is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND cp.`id_category` = " . $idCategory . " AND p.`id_manufacturer` = " . $filterManufacturer . " AND pac.id_attribute = " . $filterSize . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su fabricante y color
+        if (!is_null($filterManufacturer) && is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND cp.`id_category` = " . $idCategory . " AND p.`id_manufacturer` = " . $filterManufacturer . " AND pac.id_attribute = " . $filterColor . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su talla sin ningún otro filtro
+        if (is_null($filterManufacturer) && !is_null($filterSize) && is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND `id_category` = " . $idCategory . " AND pac.id_attribute = " . $filterSize . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su talla y color
+        if (is_null($filterManufacturer) && !is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_product_attribute_combination pac2 ON pac2.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND `id_category` = " . $idCategory . " AND pac.id_attribute = " . $filterSize . " AND pac2.`id_attribute` = " . $filterColor . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+//        Método para recuperar productos por su color sin ningún otro filtro
+        if (is_null($filterManufacturer) && is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND `id_category` = " . $idCategory . " AND pac.id_attribute = " . $filterColor . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+
+
+//        Método para recuperar productos por su color, su talla y su fabricante
+        if (!is_null($filterManufacturer) && !is_null($filterSize) && !is_null($filterColor)) {
+            $productsSql = $base_query." LEFT JOIN ps_product_attribute_combination pac ON pac.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_product_attribute_combination pac2 ON pac2.id_product_attribute = pa.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE p.`active` = 1 AND psa.quantity > 0 AND `id_category` = " . $idCategory . " AND pac.id_attribute = " . $filterColor . " AND pac2.id_attribute = " . $filterSize . " AND p.`id_manufacturer` = " . $filterManufacturer . " GROUP BY cp.`id_product` HAVING finalprice >= " . $filterFrom . " AND finalprice <= " . $filterTo . " " . $order . " ORDER BY NULL LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";";
+
+        }
+//        var_dump($productsSql);
+        if ($productsSql) {
+            $productsIdsAndPrices = Db::getInstance()->executeS($productsSql);
+
+            foreach ($productsIdsAndPrices as $productIdPrice) {
+
+                $productReturned = $this->_getOneProductForApi($productIdPrice["id_product"], true, $filterFrom, $filterTo,$id_tienda);
+
+                if ($productReturned != null) {
+                    $productsResult[] = $productReturned;
+                }
+
+            }
+        }
+
+        return $productsResult;
+    }
+
+    public function _getRangePricesToCategory($idCategory)
+    {
+        $sql = "SELECT min(price) AS minprice , max(price) AS maxprice from (SELECT round(min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()),if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage',round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) *(1 - sp.reduction),round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction),round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)),round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))), 2) AS price FROM ps_product p LEFT JOIN ps_category_product cp ON p.id_product = cp.id_product LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE id_category = {$idCategory} AND p.active = 1 AND psa.quantity > 0 group by p.id_product ORDER BY NULL) AS categoryprices;";
+
+        $result_prices = Db::getInstance()->executeS($sql);
+
+        return array("minPrice" => (float)$result_prices[0]["minprice"], "maxPrice" => (float)$result_prices[0]["maxprice"]);
+    }
+
+    public function _getRangePricesToManufacturer($idManufacturer)
+    {
+        $sql = "SELECT min(price) AS minprice , max(price) AS maxprice from (SELECT round(min(if(sp.id_specific_price IS NOT NULL AND (sp.from IS NULL OR sp.from = 0 OR sp.from < now()), if(sp.to IS NULL OR sp.to = 0 OR sp.to > now(), if(sp.reduction_type = 'percentage',round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) * (1 - sp.reduction),round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2) - sp.reduction), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2)), round(IF(pa.price > 0, pa.price, pas.price) * 1.21, 2))),2) AS price FROM ps_product p LEFT JOIN ps_product_attribute pa ON pa.id_product = p.id_product LEFT JOIN ps_product_attribute_shop pas ON pas.id_product = pa.id_product AND pa.id_product_attribute = pas.id_product_attribute LEFT JOIN ps_specific_price sp ON sp.id_product = p.id_product LEFT JOIN ps_stock_available psa ON psa.id_product_attribute = pas.id_product_attribute AND psa.id_product = p.id_product WHERE id_manufacturer = {$idManufacturer} AND p.active = 1 AND psa.quantity > 0 group by p.id_product ORDER BY NULL) AS categoryprices;";
+
+        $result_prices = Db::getInstance()->executeS($sql);
+
+        return array("minPrice" => (float)$result_prices[0]["minprice"], "maxPrice" => (float)$result_prices[0]["maxprice"]);
+    }
+
+    public function _getProductsByManufacturer($idManufacturer, $page, $perPage)
+    {
+        $products = Db::getInstance()->executeS("SELECT id_product FROM `ps_product` WHERE id_manufacturer = " . $idManufacturer . " AND active = 1 LIMIT " . (((int)$page - 1) * (int)$perPage) . "," . (int)$perPage . ";");
+
+        $arrayToReturn = [];
+
+        foreach ($products as $key => $product) {
+            $productReturned = $this->_getOneProductForApi($product['id_product']);
+            if ($productReturned != null) {
+                $arrayToReturn[] = $productReturned;
+            }
+        }
+
+        return $arrayToReturn;
+
+    }
+
+    public function getSameProductOtherColors($idProduct,$idTienda,$id_user){
+
+        $use_stores_availability = (bool)$idTienda && $idTienda !== 'false';
+        return $this->filterProductsByCriteria(3, null, null, null, null, null, 1, 20, $idTienda, null, null, null, $use_stores_availability, null, null, null, $idProduct,$id_user,false);
+    }
+
+    public function getSizesBlock($idProduct){
+        $product = new Product($idProduct);
+        $variationAndAttribute = $this->_getAllVariationsOfProduct($product);
+        $listSizes = $this->getBothSizesProductLists($product->id, $variationAndAttribute['variations']);
+        $showSizesTable = false;
+        for($i = 0; $i<count($listSizes[0]); $i++) {
+            if ($listSizes[0][$i] != $listSizes[1][$i]) {
+                $showSizesTable = true;
+                break;
+            }
+        }
+        $productReturn = array(
+            "listSizes" => $listSizes,
+            "showSizesTable" => $showSizesTable
+        );
+
+        return $productReturn;
+    }
+
+    public static function calcAdvancedStocksAvelon($idTienda,$productRef, $context){
+        $isClarks = Tools::getValue('is_clarks');
+
+        $url = "http://conexion1.globalretail.es:48764/Webservice/EStoreWebService.asmx";
+        $action = "AvelonRMS.eStore.WS/GetItemInfo";
+
+        $mySOAP = <<<EOD
+<?xml version="1.0" encoding="utf-8" ?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:avel="AvelonRMS.eStore.WS">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <avel:GetItemInfo>
+             <avel:itemId>{$productRef}</avel:itemId>
+          </avel:GetItemInfo>
+       </soapenv:Body>
+    </soapenv:Envelope>
+EOD;
+        //var_dump($mySOAP);
+        $headers = array(
+            'Content-Type: text/xml; charset=utf-8',
+            'Content-Length: '.strlen($mySOAP),
+            'SOAPAction: '.$action
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $mySOAP);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        // Check if any error occurred
+        if(curl_errno($ch))
+        {
+            $context->AppLog->saveExtra('Curl error calcAdvancedStocksAvelon:', serialize(curl_error($ch)));
+        }
+        $result = curl_exec($ch);
+
+//        if (isset(getallheaders()['Galvintec-Dev']) && getallheaders()['Galvintec-Dev'] == 1) {
+//            print_r($result);
+//            exit;
+//        }
+
+        curl_close($ch);
+
+        $result = str_replace('xmlns="AvelonRMS.eStore.WS"', '',$result);
+        $result = str_replace('xsi:type="StockForItemResult"', '',$result);
+        $result = str_replace('<soap:Body>', '',$result);
+        $result = str_replace('</soap:Body>', '',$result);
+        if(defined('AVELON_STOCK_QUERY_FIXED_RESULT')){
+            $avelon_stock_query_fixed_result = constant('AVELON_STOCK_QUERY_FIXED_RESULT');
+        }
+        if (isset($avelon_stock_query_fixed_result) && $avelon_stock_query_fixed_result) {
+            $result = $avelon_stock_query_fixed_result;
+        }
+        //var_dump($result);
+        //libxml_use_internal_errors(true);
+
+        $xmlobj = simplexml_load_string($result);
+        /*foreach( libxml_get_errors() as $error ) {
+
+            print_r($error);
+
+        }*/
+
+        $allow_order_secure_stock = true;
+
+        $date = date('Y-m-d h:i:s', time());
+        if($date >= self::BLACKFRIDAY_START && $date <= self::BLACKFRIDAY_END){
+            $allow_order_secure_stock = false;
+        }
+
+        $refUnreachableStores = array("26","902","903","991","1","32","992","908","909");
+        $sql_tienda = "select ref_tienda from ps_store where id_store=$idTienda";
+        $refStore = Db::getInstance()->executeS($sql_tienda);
+        $refStore = $refStore[0]['ref_tienda'];
+        $firstChildren = $xmlobj->children();
+        $secondChildren = $firstChildren->children();
+        $infoStock = $secondChildren->children();
+        $sizeLabels = [];
+        $stocks = [];
+        $movementRequests = [];
+        if ($infoStock) {
+            $sizeLabelsDetails = $infoStock->Details;
+            if ($sizeLabelsDetails) {
+                $sizeLabelsSizeLabels = $sizeLabelsDetails->SizeLabels;
+                if ($sizeLabelsSizeLabels) {
+                    $sizeLabels = $sizeLabelsSizeLabels->children();
+                }
+            }
+            $stocksStock = $infoStock->Stock;
+            if ($stocksStock) {
+                $stocks = $stocksStock->children();
+            }
+            $movementRequestsMovementRequests = $infoStock->MovementRequests;
+            if ($movementRequestsMovementRequests) {
+                $movementRequests = $movementRequestsMovementRequests->children();
+            }
+        }
+        $arrayInfo = array();
+        $arrayInfoIndex = 0;
+        $indexSizeInXml = 0;
+        foreach ($sizeLabels as $key => $sizeLabel){
+
+            if ($isClarks === "1"){
+                $originalSizeLabel = $sizeLabel;
+            }
+
+            $querySizeDomain = Db::getInstance()->executeS('SELECT sizeDomain_id FROM avelon_items WHERE item_id = ' . $productRef);
+
+            if (!$querySizeDomain) {
+    //                    echo "1.- No Query";
+            } else {
+                if (!$querySizeDomain[0]) {
+    //                        echo "2.- No Data in Query";
+                } else {
+                    if (!$querySizeDomain[0]['sizeDomain_id']) {
+    //                            echo "3.- No sizeDomain in Data Query";
+                    } else {
+                        $sizeDomain = $querySizeDomain[0]['sizeDomain_id'];
+                        $columnForLabel = 'size' . $indexSizeInXml . '_label';
+                        $sqlSizeByDomain = "SELECT " . $columnForLabel . " FROM avelon_sizeDomain WHERE sizeDomain_id = '" . $sizeDomain . "'";
+                        $querySizeByDomain = Db::getInstance()->executeS($sqlSizeByDomain);
+                        if(!empty($querySizeDomain)){
+                            if ($querySizeByDomain && $querySizeByDomain[0] && $querySizeByDomain[0][$columnForLabel]) {
+                                $sizeLabel = $querySizeByDomain[0][$columnForLabel];
+                            }
+                        }else{
+                            IcymobiReporteErroresModuleFrontController::sendSlackMessage(IcymobiReporteErroresModuleFrontController::KRACKONLINE_REPORTE_ERRORES_SLACK_SPACE,"El producto con referencia $productRef no tiene conversiones en la tabla avelon_items/avelon_sizeDomain consulta $sqlSizeByDomain","Error de conversion de tallas.");
+                            return array();
+                        }
+                    }
+                }
+            }
+            $indexSizeInXml++;
+
+            $stock = new stdClass();
+
+            if($isClarks === "1"){
+                $stock->attribute_name = (string) $originalSizeLabel;
+            }else{
+                $stock->attribute_name = (string) $sizeLabel;
+            }
+            $stock->prestashop_attribute_name = (string) $sizeLabel;
+            $stock->security_stock_quantity = (int) $infoStock->Details->SecurityStock;
+            $stock->secure_stock = false;
+            $stock->in_stock = false;
+            $stock->in_stock_other_stores = false;
+            $stock->secure_quantity_stock = 0;
+            $stock->security_stock = $stock->security_stock_quantity > 0;
+            $stock->insecure_quantity_stock = 0;
+            $stock->insecure_stock = false;
+            $stock->total_stock = 0;
+            $stock->stores = array();
+            $stock->allow_order_secure_stock = true;
+            $stock->hasMovements = false;
+            $stock->movements = array();
+            $stock->local_reserves = 0;
+            $stock->allow_order_secure_stock = $allow_order_secure_stock;
+            $stock->only_stock_in_unrachable_locations = false;
+            $stock->color = "#007B14";
+
+            $sql_size = "SELECT id_attribute from ps_attribute_lang where name='".$sizeLabel."' and id_lang=1";
+
+            $stock->id_attribute_size = Db::getInstance()->executeS($sql_size);
+            if(empty($stock->id_attribute_size)){
+                $arrayInfoIndex++;
+                continue;
+            }
+            $stock->id_attribute_size = $stock->id_attribute_size[0]['id_attribute'];
+
+            $arrayIndex = 0;
+            $stockTotal = 0;
+            foreach ($stocks as $key => $stck){
+                if($stck->children()->StockType == 0){
+                    $reachableStore = true;
+
+                    foreach ($refUnreachableStores as $unreachableStore){
+                        if($unreachableStore == (string)$stck->children()->ShopId){
+                            $reachableStore = false;
+                            break;
+                        }
+                    }
+                    if ($reachableStore){
+                        $quantities = $stck->children()->Quantities;
+                        $stockTotal = $stockTotal + $quantities->children()[$arrayInfoIndex];
+                    }
+                }
+            }
+
+            $stockTotalCurrentStore = 0;
+            foreach ($stocks as $key => $stck){
+                if($stck->children()->StockType == 0 && (int)$stck->children()->ShopId == $refStore) {
+                    $quantitiesCurrentStore = $stck->children()->Quantities;
+                    $stockTotalCurrentStore = $stockTotalCurrentStore + $quantitiesCurrentStore->children()[$arrayInfoIndex];
+                }
+            }
+
+            $stockReserves = clone $stocks;
+            foreach ($stocks as $key => $stck){
+                if($stck->children()->StockType == 0){
+                    $quantities = $stck->children()->Quantities;
+                    $stock->secure_stock = ($stockTotal-$stock->security_stock_quantity) > 0;
+                    $stock->insecure_stock = ($stockTotal) > 0;
+                    if($stck->children()->ShopId == $refStore){
+                        foreach ($stockReserves as $key2 => $stck2){
+                            if(($stck2->children()->StockType == 1 || $stck2->children()->StockType == 2) && $stck2->children()->ShopId == $refStore ) {
+                                $reserves = $stck2->children()->Quantities;
+                                $stock->local_reserves = $stock->local_reserves + $reserves->children()[$arrayInfoIndex];
+                            }
+                        }
+
+                        $stock->total_stock = ($stockTotalCurrentStore >= 0) ? (int)$stockTotalCurrentStore : 0;
+                        $stock->secure_quantity_stock = max($stock->total_stock - $stock->security_stock_quantity, 0);
+                        $stock->in_stock = $stock->total_stock > 0;
+                        $stock->insecure_quantity_stock = min($stock->security_stock_quantity, $stock->total_stock);
+                    }else{
+                        $sqlCheckIdSendStock = "select stock_app from ps_store where ref_tienda = ".$stck->children()->ShopId.";";
+                        $checkStock = Db::getInstance()->executeS($sqlCheckIdSendStock);
+                        if(empty($checkStock)){continue;}
+                        if($checkStock[0]['stock_app'] == 1){
+                            $storeStock = new stdClass();
+                            $storeStock->id = (int) $stck->children()->ShopId;
+                            $storeStock->security_stock_quantity = $stock->security_stock_quantity;
+                            $storeStock->total_stock = (int)$quantities->children()[$arrayInfoIndex];
+                            $storeStock->insecure_stock = $stock->insecure_stock;
+                            $storeStock->insecure_quantity_stock = 0;
+                            $storeStock->secure_stock = $stock->secure_stock;
+                            $storeStock->allow_order_secure_stock = true;
+                            $storeStock->secure_quantity_stock = 0;
+                            $storeStock->allow_order_secure_stock = $allow_order_secure_stock;
+
+                            $storeStock->secure_quantity_stock = max($storeStock->total_stock - $stock->security_stock_quantity, 0);
+                            $storeStock->in_stock = $storeStock->total_stock > 0;
+                            if ($storeStock->in_stock) {
+                                $setOtherStores = true;
+                                foreach ($refUnreachableStores as $unreachableStore){
+                                    if($unreachableStore == (string)$storeStock->id){
+                                        $setOtherStores = false;
+                                        break;
+                                    }
+                                }
+                                if ($setOtherStores){
+                                    $stock->in_stock_other_stores = true;
+                                }
+                            }
+
+                            $storeStock->insecure_quantity_stock = min($storeStock->security_stock_quantity, $storeStock->total_stock);
+                            array_push($stock->stores,$storeStock);
+                        }
+                    }
+                }
+                $arrayIndex++;
+            }
+
+            foreach ($movementRequests as $key => $movement){
+                if($movement->children()->Quantities->children()[$arrayInfoIndex] > 0){
+                    if((int)$movement->children()->OriginShopId != 992 && (int)$movement->children()->DestinationShopId != 992 && (int)$movement->children()->OriginShopId != 903 && (int)$movement->children()->DestinationShopId != 903){
+                        $mov = new stdClass();
+                        $mov->originStore = (int)$movement->children()->OriginShopId;
+                        $mov->destinationStore = (int)$movement->children()->DestinationShopId;
+                        $mov->quantity = (int)$movement->children()->Quantities->children()[$arrayInfoIndex];
+                        $stock->hasMovements = true;
+                        array_push($stock->movements,$mov);
+                        if((int)$movement->children()->OriginShopId == $refStore){
+                            $stock->total_stock = $stock->total_stock - $mov->quantity;
+                            $stock->total_stock = ($stock->total_stock >= 0) ? (int)$stock->total_stock : 0;
+                            $stock->secure_quantity_stock = max($stock->total_stock - $stock->security_stock_quantity, 0);
+                            $stock->in_stock = $stock->total_stock > 0;
+                            $stock->insecure_quantity_stock = min($stock->security_stock_quantity, $stock->total_stock);
+                        }else{
+                            foreach ($stock->stores as $key => $store){
+                                if($store->id == (int)$movement->children()->OriginShopId || $store->id == (int)$movement->children()->DestinationShopId){
+                                    $store->total_stock = $store->total_stock - $mov->quantity;
+                                    $store->total_stock = ($store->total_stock >= 0) ? (int) $store->total_stock : 0;
+                                    $store->secure_quantity_stock = max($store->total_stock - $stock->security_stock_quantity, 0);
+                                    $store->in_stock = $store->total_stock > 0;
+                                    $store->insecure_quantity_stock = min($store->security_stock_quantity, $store->total_stock);
+                                }
+                            }
+                        }
+                    }elseif((int)$movement->children()->DestinationShopId == 903){
+                        if((int)$movement->children()->OriginShopId == $refStore){
+                            $stock->total_stock = $stock->total_stock - (int)$movement->children()->Quantities->children()[$arrayInfoIndex];
+                            $stock->total_stock = ($stock->total_stock >= 0) ? (int)$stock->total_stock : 0;
+                            $stock->secure_quantity_stock = max($stock->total_stock - $stock->security_stock_quantity, 0);
+                            $stock->in_stock = $stock->total_stock > 0;
+                            $stock->insecure_quantity_stock = min($stock->security_stock_quantity, $stock->total_stock);
+                        }
+                        foreach ($stock->stores as $key => $store){
+                            if($store->id == (int)$movement->children()->OriginShopId ){
+                                $store->total_stock = $store->total_stock - (int)$movement->children()->Quantities->children()[$arrayInfoIndex];
+                                $store->total_stock = ($store->total_stock >= 0) ? (int) $store->total_stock : 0;
+                                $store->secure_quantity_stock = max($store->total_stock - $stock->security_stock_quantity, 0);
+                                $store->in_stock = $store->total_stock > 0;
+                                $store->insecure_quantity_stock = min($store->security_stock_quantity, $store->total_stock);
+                            }
+                        }
+                    }
+                }
+            }
+
+            array_push($arrayInfo,$stock);
+            $arrayInfoIndex++;
+        }
+
+        foreach ($arrayInfo as $size) {
+            if($size->stores){
+                $stock_stores = false;
+                $have_stock_another_store = false;
+                foreach ($size->stores as $store){
+                    if($store->in_stock){
+                        $have_stock_another_store = true;
+                        if(in_array($store->id,$refUnreachableStores)){
+                            $stock_stores = false;
+                        }else{
+                            $stock_stores = true;
+                            break;
+                        }
+                    }
+                }
+                if($stock_stores){
+                    $size->in_stock_other_stores = true;
+                }else{
+                    $size->in_stock_other_stores = false;
+                    $size->only_stock_in_unrachable_locations = $have_stock_another_store;
+                }
+                if($size->in_stock){
+                    $size->color = "#007B14";
+                }else if($size->in_stock_other_stores){
+                    if($size->secure_stock){
+                        $size->color = "#c5c501";
+                    }else if ($size->insecure_stock){
+                        $size->color = "#345b9b";
+                    }
+                }else if ($size->only_stock_in_unrachable_locations){
+                    $size->color = "#d3d3d3";
+                }else{
+                    $size->color = null;
+                }
+            }
+        }
+        return $arrayInfo;
+    }
+
+    public static function calcAdvancedStocks($id_tienda, $productID, $productRef) {
+        $advanced_stocks = [];
+        $allow_order_secure_stock = true;
+
+        $date = date('Y-m-d h:i:s', time());
+        if($date >= self::BLACKFRIDAY_START && $date <= self::BLACKFRIDAY_END){
+            $allow_order_secure_stock = false;
+        }
+
+        $sql_tienda = "select ref_tienda from ps_store where id_store=$id_tienda";
+        $ref_store = Db::getInstance()->executeS($sql_tienda);
+        $ref_store = $ref_store[0]['ref_tienda'];
+
+        $sql_sizeDomain = "SELECT * from avelon_items ai INNER JOIN avelon_sizeDomain asd on asd.sizeDomain_id=ai.sizeDomain_id WHERE item_id = $productRef";
+        $avelon_item = Db::getInstance()->executeS($sql_sizeDomain);
+        if(!empty($avelon_item)){
+            $avelon_item = $avelon_item[0];
+
+            $sql_stock_store = "SELECT * FROM avelon_stock_item_store WHERE item_id= $productRef";
+            $stocks_by_store = Db::getInstance()->executeS($sql_stock_store);
+
+            foreach ($avelon_item as $key_avelon => $item){
+                if($key_avelon == 'stock_seguridad'){
+                    $security_stock = $item;
+                }
+                $is_size = preg_match("/^size\d+_label/",$key_avelon);
+                if($is_size){
+                    if($item != ""){
+                        $stock = new stdClass();
+                        $stock->security_stock_quantity = $security_stock;
+                        $stock->security_stock = $stock->security_stock_quantity > 0;
+                        $stock->attribute_name = $item;
+                        $sql_size = "SELECT id_attribute from ps_attribute_lang where name='".$item."' and id_lang=1";
+                        $stock->id_attribute_size = Db::getInstance()->executeS($sql_size);
+                        if(empty($stock->id_attribute_size)){continue;}
+                        $stock->id_attribute_size = $stock->id_attribute_size[0]['id_attribute'];
+                        if($stock->id_attribute_size != 65 && $stock->id_attribute_size != 87 && $stock->id_attribute_size != 128){
+                            $sqlExistsSize = "select ppa.* from ps_product_attribute ppa
+    inner join ps_product_attribute_combination ppac on ppac.id_product_attribute=ppa.id_product_attribute
+    inner join ps_attribute_lang pal on pal.id_attribute=ppac.id_attribute
+    where id_product=".$productID." and pal.id_attribute=".$stock->id_attribute_size.";";
+                            $exists = Db::getInstance()->executeS($sqlExistsSize);
+                            if(empty($exists)){
+                                continue;
+                            }
+                        }
+                        $stock->in_stock = false;
+                        $stock->in_stock_other_stores = false;
+                        $stock->secure_quantity_stock = 0;
+                        $stock->secure_stock = false;
+                        $stock->insecure_quantity_stock = 0;
+                        $stock->insecure_stock = false;
+                        $stock->total_stock = 0;
+                        $this_store = false;
+                        foreach ($stocks_by_store as $store){
+                            $stock->stores = [];
+                            $send_to_app = false;
+                            $send_to_app_other_store = false;
+                            foreach ($store as $key_by_store => $item_by_store){
+                                $is_size_by_store = preg_match("/^size\d+/",$key_by_store);
+                                if($is_size_by_store !== 0){
+                                    $parse_avelon = preg_replace("/^(size\d+).*/",'$1_stock',$key_avelon);
+                                    if($parse_avelon === $key_by_store){
+                                        if($item_by_store != ""){
+                                            $sql_associate_store = "SELECT $key_by_store FROM avelon_stock_item_store asis left join ps_store ps on ps.ref_tienda=asis.store_id WHERE item_id = $productRef and store_id = $ref_store and ps.stock_app = 1 group by store_id";
+                                            $sql_associate_multistore = "SELECT $key_by_store as $key_by_store FROM avelon_items where item_id=$productRef ";
+                                            $available_in_store = Db::getInstance()->executeS($sql_associate_store);
+                                            if(!$this_store){
+                                                if(!empty($available_in_store)){
+                                                    if($available_in_store[0][$key_by_store] > 0){
+                                                        $send_to_app = true;
+                                                        $stock->total_stock = ($available_in_store[0][$key_by_store] >= 0) ? (int)$available_in_store[0][$key_by_store] : 0 ;
+                                                        $stock->secure_quantity_stock = max($stock->total_stock - $stock->security_stock_quantity, 0);
+                                                        $stock->in_stock = $stock->total_stock > 0;
+
+                                                        $stock->insecure_quantity_stock = min($stock->security_stock_quantity, $stock->total_stock);
+                                                    }
+                                                    $this_store = true;
+                                                    continue;
+                                                }
+                                            }
+                                            $available_general = Db::getInstance()->executeS($sql_associate_multistore);
+                                            if(!empty($available_general)){
+                                                $stock->secure_stock = ($available_general[0][$key_by_store]-$stock->security_stock_quantity) > 0;
+
+                                                $stock->insecure_stock = ($available_general[0][$key_by_store]) > 0;
+                                            }
+                                            if(!$stock->secure_stock && !$stock->insecure_stock){continue;}
+                                            $sql_other_stores = "SELECT $key_by_store,store_id FROM avelon_stock_item_store left join ps_store ps on ps.ref_tienda=avelon_stock_item_store.store_id WHERE item_id = $productRef and store_id != $ref_store and ps.stock_app=1 group by store_id";
+                                            $available_in_other_stores = Db::getInstance()->executeS($sql_other_stores);
+                                            foreach ($available_in_other_stores as $stock_store){
+                                                $storeObject = new stdClass();
+                                                $storeObject->id = $stock_store['store_id'];
+                                                $storeObject->security_stock_quantity = $stock->security_stock_quantity;
+                                                $storeObject->insecure_stock = $stock->insecure_stock;
+                                                $storeObject->insecure_quantity_stock = 0;
+                                                $storeObject->secure_stock = $stock->secure_stock;
+                                                $storeObject->allow_order_secure_stock = $allow_order_secure_stock;
+                                                $storeObject->secure_quantity_stock = 0;
+                                                $storeObject->in_stock = false;
+                                                $storeObject->total_stock = 0;
+                                                $send_to_app_other_store = true;
+                                                if($stock_store[$key_by_store] > 0){
+                                                    $storeObject->total_stock = $stock_store[$key_by_store];
+                                                    $storeObject->secure_quantity_stock = max($storeObject->total_stock - $stock->security_stock_quantity, 0);
+                                                    $storeObject->in_stock = $storeObject->total_stock > 0;
+                                                    if ($storeObject->in_stock) {
+                                                        $stock->in_stock_other_stores = true;
+                                                    }
+
+                                                    $storeObject->insecure_quantity_stock = min($storeObject->security_stock_quantity, $storeObject->total_stock);
+                                                }
+                                                if($storeObject->total_stock > 0){
+                                                    array_push($stock->stores,$storeObject);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        $stock->allow_order_secure_stock = $allow_order_secure_stock;
+                        if(isset($send_to_app_other_store) && isset($send_to_app)){
+                            if($send_to_app_other_store || $send_to_app){
+                                array_push($advanced_stocks,$stock);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $advanced_stocks;
+    }
+
+    public function importProductVideos(){
+        $urlToImportVideos = XMLSYNC_KRACKONLINE_URL . "/productVideos?op=get_videos";
+        $curlImportCustomerKrack = curl_init();
+        curl_setopt($curlImportCustomerKrack, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curlImportCustomerKrack, CURLOPT_URL, $urlToImportVideos);
+        curl_setopt($curlImportCustomerKrack, CURLOPT_CONNECTTIMEOUT, 60);
+        curl_setopt($curlImportCustomerKrack, CURLOPT_TIMEOUT, 60);
+        $contentVideosImported = curl_exec($curlImportCustomerKrack);
+        curl_close($curlImportCustomerKrack);
+
+        $videos = json_decode($contentVideosImported);
+
+        $sqlInsertVideo = "INSERT INTO ps_product_videos (id_productvideo,id_product,id_video,title,provider,video_url,position,id_lang,id_shop) VALUES ";
+
+        $sqlDeleteVideo = "DELETE FROM ps_product_videos where id_productvideo not in (".implode(',',$videos->ids).")";
+
+        $numItems = count($videos->allInfo);
+        $i = 0;
+        foreach($videos->allInfo as $key => $value) {
+            $i++;
+            $sqlGetIdProduct = "SELECT id_local FROM gk_products_local where id_krack =".$value->id_product;
+            $responseGetIdProduct = Db::getInstance()->executeS($sqlGetIdProduct);
+            $idProductLocal = $responseGetIdProduct[0]['id_local'];
+            $sqlCheckVideoInserted = "SELECT id_productvideo from ps_product_videos where id_productvideo = ".$value->id_productvideo;
+            $responseCheckVideoInserted = Db::getInstance()->executeS($sqlCheckVideoInserted);
+            if(empty($responseCheckVideoInserted)){
+                if($i === $numItems) {
+                    $sqlInsertVideo .= "(".$value->id_productvideo.",".$idProductLocal.",'".$value->id_video."','".$value->title."','".$value->provider."','".$value->video_url."',$value->position,$value->id_lang,$value->id_shop)";
+                }else{
+                    $sqlInsertVideo .= "(".$value->id_productvideo.",".$idProductLocal.",'".$value->id_video."','".$value->title."','".$value->provider."','".$value->video_url."',$value->position,$value->id_lang,$value->id_shop),";
+                }
+            }else{
+                $sqlUpdateVideo = "UPDATE ps_product_videos SET id_product = $idProductLocal, id_video = '".$value->id_video."',title = '".$value->title."', provider = '".$value->provider."',video_url = '".$value->video_url."', position = $value->position,id_lang = $value->id_lang,id_shop = $value->id_shop WHERE id_productvideo = ".$responseCheckVideoInserted[0]['id_productvideo'].";";
+
+                Db::getInstance()->execute($sqlUpdateVideo);
+            }
+        }
+        $lastChar = substr($sqlInsertVideo, -1);
+        $sqlInsertVideoTrimmed = $sqlInsertVideo;
+        if($lastChar === ','){
+            $sqlInsertVideoTrimmed = rtrim($sqlInsertVideo,", ");;
+        }
+
+        Db::getInstance()->execute($sqlInsertVideoTrimmed);
+        Db::getInstance()->execute($sqlDeleteVideo);
+    }
+
+    private function getIdProductLocal($idProductKrack){
+        $query = "SELECT id_local FROM gk_products_local WHERE id_krack = '".$idProductKrack."'";
+        $response = Db::getInstance()->executeS($query);
+        if($response && $response[0]['id_local'] > 0){
+            return $response[0]['id_local'];
+        } else {
+            return false;
+        }
+    }
+
+    private function checkSizesProductInOrders($idProduct) {
+        $querySizes = "SELECT pspa.id_product_attribute, pssa.quantity, psal.name,if(size0_label = psal.name, ai.size0_stock, if(size1_label = psal.name, ai.size1_stock, if(size2_label = psal.name, ai.size2_stock, if(size3_label = psal.name, ai.size3_stock, if(size4_label = psal.name, ai.size4_stock, if(size5_label = psal.name, ai.size5_stock, if(size6_label = psal.name, ai.size6_stock, if(size7_label = psal.name, ai.size7_stock, if(size8_label = psal.name, ai.size8_stock, if(size9_label = psal.name, ai.size9_stock, if(size10_label = psal.name, ai.size10_stock, if(size11_label = psal.name, ai.size11_stock, if(size12_label = psal.name, ai.size12_stock, if(size13_label = psal.name, ai.size13_stock, if(size14_label = psal.name, ai.size14_stock, if(size15_label = psal.name, ai.size15_stock, if(size16_label = psal.name, ai.size16_stock, if(size17_label = psal.name, ai.size17_stock, if(size18_label = psal.name, ai.size18_stock, if(size19_label = psal.name, ai.size19_stock, if(size20_label = psal.name, ai.size20_stock, if(size21_label = psal.name, ai.size21_stock, 0))))))))))))))))))))))  as avelon_quantity
+FROM ps_product_attribute pspa
+       LEFT JOIN ps_stock_available pssa ON pspa.id_product_attribute = pssa.id_product_attribute
+       LEFT JOIN ps_product_attribute_combination pspac ON pspa.id_product_attribute = pspac.id_product_attribute
+       LEFT JOIN ps_attribute psa ON psa.id_attribute = pspac.id_attribute
+       LEFT JOIN ps_attribute_lang psal ON psa.id_attribute = psal.id_attribute
+       LEFT JOIN gk_customers_local gcl ON pspa.id_product = gcl.id_krack
+       LEFT JOIN ps_product pp ON pspa.id_product = pp.id_product
+       LEFT JOIN avelon_items ai ON pp.reference = ai.item_id
+       LEFT JOIN avelon_sizeDomain asd on ai.sizeDomain_id = asd.sizeDomain_id
+WHERE pspa.id_product = ".$idProduct."
+  AND psa.id_attribute_group = ".self::ID_GROUP_SIZES."
+GROUP BY psal.id_attribute;";
+        $listSizesProduct = [];
+        if ($response =  Db::getInstance()->executeS($querySizes)) {
+            if (count($response) > 0) {
+                foreach ($response as $productAttribute) {
+                    $listSizesProduct[$productAttribute["id_product_attribute"]] = [
+                        "id_size" => $productAttribute["id_product_attribute"],
+                        "name" => $productAttribute["name"],
+                        "quantity_stock" => $productAttribute["quantity"],
+                        "available" => $productAttribute["quantity"] > 0 ? true : false,
+                        "available_avelon" => $productAttribute["avelon_quantity"] > 0 ? true : false,
+                        "other_order" => false
+                    ];
+                }
+
+                $querySizesOrdered = "SELECT pspo.id_product_attribute_local, psal.name FROM ps_product_ordered pspo LEFT JOIN ps_product_attribute pspa ON pspo.id_product_attribute_local = pspa.id_product_attribute LEFT JOIN ps_product_attribute_combination pspac ON pspa.id_product_attribute = pspac.id_product_attribute LEFT JOIN ps_attribute psa ON psa.id_attribute = pspac.id_attribute LEFT JOIN ps_attribute_lang psal ON psa.id_attribute = psal.id_attribute WHERE pspa.id_product =  " . $idProduct . " AND psa.id_attribute_group = " . self::ID_GROUP_SIZES .  " GROUP BY psal.id_attribute ORDER BY NULL";
+                if ($responseSizesOrdered = Db::getInstance()->executeS($querySizesOrdered)) {
+                    if (count($responseSizesOrdered) > 0) {
+                        foreach ($responseSizesOrdered as $sizeOrdered) {
+                            if ($listSizesProduct[$sizeOrdered["id_product_attribute_local"]]) {
+                                $listSizesProduct[$sizeOrdered["id_product_attribute_local"]]["other_order"] = true;
+                            } else {
+                                $listSizesProduct[$sizeOrdered["id_product_attribute_local"]] = [
+                                  "id_size" => $sizeOrdered["id_product_attribute_local"],
+                                  "name" => $sizeOrdered["name"],
+                                  "quantity_stock" => 0,
+                                  "available" => false,
+                                  "other_order" => true,
+                                  "available_avelon" => false
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $listSizesProduct;
+    }
+
+    public function getBothSizesProductLists($idProduct, $variations) {
+        $listBothSizes = [];
+        $listEuropeSizes = [];
+        $queryGetSizeDomain = "SELECT sizeDomain_id FROM ps_product pp
+       LEFT JOIN avelon_items ai ON pp.reference = ai.item_id WHERE pp.id_product=$idProduct";
+        $sizeDomain = Db::getInstance()->executeS($queryGetSizeDomain);
+        $sizeDomain = $sizeDomain[0]["sizeDomain_id"];
+        $queryGetEuropeSizes = "SELECT size0_label, size1_label, size2_label, size3_label, size4_label, size5_label, size6_label, size7_label, size8_label, size9_label, size10_label, size11_label, size12_label, size13_label, size14_label, size15_label, size16_label, size17_label, size18_label, size19_label, size20_label, size21_label FROM avelon_sizeDomain WHERE sizeDomain_id='$sizeDomain'";
+        $europeSizes = Db::getInstance()->executeS($queryGetEuropeSizes);
+        if (isset($europeSizes) && count($europeSizes) > 0 && isset($europeSizes[0])) {
+            $europeSizes = $europeSizes[0];
+            for($i = 0; $i<count($europeSizes); $i++) {
+                array_push($listEuropeSizes, $europeSizes["size" . $i . "_label"]);
+            }
+        }
+        $queryGetReference = "SELECT reference FROM ps_product WHERE id_product=$idProduct";
+        $reference = Db::getInstance()->executeS($queryGetReference);
+        $reference = $reference[0]["reference"];
+        $url = "http://conexion1.globalretail.es:48764/Webservice/EStoreWebService.asmx";
+        $action = "AvelonRMS.eStore.WS/GetItemInfo";
+
+        $mySOAP = <<<EOD
+<?xml version="1.0" encoding="utf-8" ?>
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:avel="AvelonRMS.eStore.WS">
+       <soapenv:Header/>
+       <soapenv:Body>
+          <avel:GetItemInfo>
+             <avel:itemId>{$reference}</avel:itemId>
+          </avel:GetItemInfo>
+       </soapenv:Body>
+    </soapenv:Envelope>
+EOD;
+        $headers = array(
+            'Content-Type: text/xml; charset=utf-8',
+            'Content-Length: '.strlen($mySOAP),
+            'SOAPAction: '.$action
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $mySOAP);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        // Check if any error occurred
+        if(curl_errno($ch))
+        {
+            $this->AppLog->saveExtra('Curl error getBothSizesProductLists:', serialize(curl_error($ch)));
+        }
+        $result = curl_exec($ch);
+
+        curl_close($ch);
+
+        $result = str_replace('xmlns="AvelonRMS.eStore.WS"', '',$result);
+        $result = str_replace('xsi:type="StockForItemResult"', '',$result);
+        $result = str_replace('<soap:Body>', '',$result);
+        $result = str_replace('</soap:Body>', '',$result);
+
+        $xmlobj = simplexml_load_string($result);
+        $infoStock = $xmlobj->children()->children()->children();
+        $objectAvelonSizes = [];
+        if ($infoStock) {
+            $objectAvelonSizesDetails = $infoStock->Details;
+            if ($objectAvelonSizesDetails) {
+                $objectAvelonSizesSizeLabels = $objectAvelonSizesDetails->SizeLabels;
+                if ($objectAvelonSizesSizeLabels) {
+                    $objectAvelonSizesChildren = $objectAvelonSizesSizeLabels->children();
+                    if ($objectAvelonSizesChildren) {
+                        $objectAvelonSizes = $objectAvelonSizesChildren->string;
+                    }
+                }
+            }
+        }
+
+        $listAvelonSizes = json_decode(json_encode($objectAvelonSizes), true);
+        $listOriginalSizes = [];
+
+        $indexToRemove = [];
+        for($i = 0; $i<count($listEuropeSizes); $i++) {
+            if ($listEuropeSizes[$i] == "") {
+                array_push($indexToRemove, $i);
+            }
+        }
+        for ($i = 0; $i<count($indexToRemove); $i++) {
+            unset($listEuropeSizes[$indexToRemove[$i]]);
+            unset($listAvelonSizes[$indexToRemove[$i]]);
+        }
+        sort($listEuropeSizes);
+        foreach ($listAvelonSizes as $avelonSizeData) {
+            array_push($listOriginalSizes, $avelonSizeData);
+        }
+        array_push($listBothSizes, $listEuropeSizes, $listOriginalSizes);
+
+        return $listBothSizes;
+    }
+
+    public function cronProductsOrdered(){
+        $urlToImportProductsOrdered = XMLSYNC_KRACKONLINE_URL . "/products?op=cron_products_ordered";
+        $curlImportProductsOrdered = curl_init();
+        curl_setopt($curlImportProductsOrdered, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curlImportProductsOrdered, CURLOPT_URL, $urlToImportProductsOrdered);
+        curl_setopt($curlImportProductsOrdered, CURLOPT_CONNECTTIMEOUT, 60);
+        curl_setopt($curlImportProductsOrdered, CURLOPT_TIMEOUT, 60);
+        $contentProductsOrdered = curl_exec($curlImportProductsOrdered);
+        curl_close($curlImportProductsOrdered);
+
+        $idsProductAttributesOrderedKrack = json_decode($contentProductsOrdered);
+
+        $idsProductAttributesOrderedLocal = array();
+        foreach ($idsProductAttributesOrderedKrack as $product){
+            $sqlGetIdProductAttributeLocal = "SELECT id_local FROM gk_combinations_local where id_krack =  ".$product->product_attribute_id;
+            $responseGetIdProductAttributeLocal = Db::getInstance()->executeS($sqlGetIdProductAttributeLocal);
+            if(!empty($responseGetIdProductAttributeLocal)){
+                array_push($idsProductAttributesOrderedLocal,$responseGetIdProductAttributeLocal[0]['id_local']);
+            }
+        }
+
+        $sqlInsert = "INSERT IGNORE INTO ps_product_ordered (id_product_attribute_local) VALUES ";
+
+        $numItems = count($idsProductAttributesOrderedLocal);
+        $i = 0;
+        foreach($idsProductAttributesOrderedLocal as $key => $value) {
+            if(++$i === $numItems) {
+                $sqlInsert .= "(".$value.");";
+            }else{
+                $sqlInsert .= "(".$value."),";
+            }
+        }
+
+        $responseInsert = Db::getInstance()->execute($sqlInsert);
+
+        if($responseInsert){
+           echo "INSERTADO CORRECTAMENTE";
+        }else{
+            echo "NO INSERTADO";
+        }
+    }
+
+    public static function removeProductsOutOfKO() {
+        $urlGetAllProductsId = XMLSYNC_KRACKONLINE_URL . "/products?op=get_ids&active=99";
+        $curlGetAllProductsId = curl_init();
+        curl_setopt($curlGetAllProductsId, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curlGetAllProductsId, CURLOPT_URL, $urlGetAllProductsId);
+        curl_setopt($curlGetAllProductsId, CURLOPT_CONNECTTIMEOUT, 60);
+        curl_setopt($curlGetAllProductsId, CURLOPT_TIMEOUT, 60);
+        $listAllProductsId = curl_exec($curlGetAllProductsId);
+        curl_close($curlGetAllProductsId);
+
+        $arrayAllProductsId = json_decode($listAllProductsId);
+
+        if ($arrayAllProductsId && $arrayAllProductsId != null && count($arrayAllProductsId) > 0) {
+            $processedMapArrayAllProductsId = array_map(function ($productData) {
+                if ($productData->id_product && $productData->id_product != null) {
+                    return $productData->id_product;
+                } else {
+                    return false;
+                }
+            }, $arrayAllProductsId);
+
+            if (isset($processedMapArrayAllProductsId) && $processedMapArrayAllProductsId && $processedMapArrayAllProductsId != null && count($processedMapArrayAllProductsId) > 0) {
+                $processedFilterArrayAllProductsId = array_filter($processedMapArrayAllProductsId, function ($productData) {
+                    if ($productData && $productData != null) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+
+                if (isset($processedFilterArrayAllProductsId) && $processedFilterArrayAllProductsId && $processedFilterArrayAllProductsId != null && count($processedFilterArrayAllProductsId) > 0) {
+                    $processedStringAllProductsId = implode(",", $processedFilterArrayAllProductsId);
+
+                    if (isset($processedStringAllProductsId) && $processedStringAllProductsId && $processedStringAllProductsId != null && $processedStringAllProductsId != '' && $processedStringAllProductsId != ' ') {
+                        $sGetProductsOutOfKO = "SELECT id_local FROM gk_products_local WHERE id_krack NOT IN (".$processedStringAllProductsId.")";
+                        $rGetProductsOutOfKO = Db::getInstance()->executeS($sGetProductsOutOfKO);
+
+                        if (isset($rGetProductsOutOfKO) && $rGetProductsOutOfKO && $rGetProductsOutOfKO != null && count($rGetProductsOutOfKO) > 0) {
+                            $processedMapArrayProductsOutOfKO = array_map(function ($productData) {
+                                if ($productData['id_local'] && $productData['id_local'] != null) {
+                                    return $productData['id_local'];
+                                } else {
+                                    return false;
+                                }
+                            }, $rGetProductsOutOfKO);
+
+                            if (isset($processedMapArrayProductsOutOfKO) && $processedMapArrayProductsOutOfKO && $processedMapArrayProductsOutOfKO != null && count($processedMapArrayProductsOutOfKO) > 0) {
+                                $processedStringProductsOutOfKO = implode(",", $processedMapArrayProductsOutOfKO);
+
+                                if (isset($processedStringProductsOutOfKO) && $processedStringProductsOutOfKO && $processedStringProductsOutOfKO != null && $processedStringProductsOutOfKO != '' && $processedStringProductsOutOfKO != ' ') {
+                                    $rSaveDeletedProductsOutOfKO = Db::getInstance()->execute("INSERT INTO ps_product_deleted SELECT *, '".date("Y-m-d H:i:s")."' FROM ps_product WHERE id_product IN (".$processedStringProductsOutOfKO.")");
+
+                                    if ($rSaveDeletedProductsOutOfKO) {
+                                        $rDeleteProducts = Db::getInstance()->execute("DELETE FROM ps_product WHERE id_product IN (".$processedStringProductsOutOfKO.")");
+                                        $rDeleteMapProducts = Db::getInstance()->execute("DELETE FROM gk_products_local WHERE id_local IN (".$processedStringProductsOutOfKO.")");
+                                        $rDeleteProductsShop = Db::getInstance()->execute("DELETE FROM ps_product_shop WHERE id_product IN (".$processedStringProductsOutOfKO.")");
+
+                                        return [
+                                            "saveDeletedProductsOutOkKO" => $rSaveDeletedProductsOutOfKO,
+                                            "rDeleteProducts" => $rDeleteProducts,
+                                            "rDeleteMapProducts" => $rDeleteMapProducts,
+                                            "rDeleteProductsShop" => $rDeleteProductsShop
+                                        ];
+                                    } else {
+                                        return "Error to delete products";
+                                    }
+                                } else {
+                                    return "No products in local that not exists in KO in string after implode";
+                                }
+                            } else {
+                                return "No products in local that not exists in KO after map";
+                            }
+                        } else {
+                            return "No products in local that not exists in KO";
+                        }
+                    } else {
+                        return "No values in string after implode";
+                    }
+                } else {
+                    return "No products after filter";
+                }
+            } else {
+                return "No products after map";
+            }
+        } else {
+            return "No products from KO";
+        }
+    }
+
+    public static function removeDiscountsOutOfKO() {
+        $urlGetAllProductsWithDiscounts = XMLSYNC_KRACKONLINE_URL . "/products?op=get_all_products_with_discounts";
+        $curlGetAllProductsWithDiscounts = curl_init();
+        curl_setopt($curlGetAllProductsWithDiscounts, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curlGetAllProductsWithDiscounts, CURLOPT_URL, $urlGetAllProductsWithDiscounts);
+        curl_setopt($curlGetAllProductsWithDiscounts, CURLOPT_CONNECTTIMEOUT, 60);
+        curl_setopt($curlGetAllProductsWithDiscounts, CURLOPT_TIMEOUT, 60);
+        $listAllDiscountsId = curl_exec($curlGetAllProductsWithDiscounts);
+        curl_close($curlGetAllProductsWithDiscounts);
+
+        $arrayAllDiscountsId = json_decode($listAllDiscountsId);
+
+        if ($arrayAllDiscountsId && $arrayAllDiscountsId != null && count($arrayAllDiscountsId) > 0) {
+            $processedMapArrayAllDiscountsId = array_map(function ($discountData) {
+                if ($discountData->id_specific_price && $discountData->id_specific_price != null) {
+                    return $discountData->id_specific_price;
+                } else {
+                    return false;
+                }
+            }, $arrayAllDiscountsId);
+
+            if (isset($processedMapArrayAllDiscountsId) && $processedMapArrayAllDiscountsId && $processedMapArrayAllDiscountsId != null && count($processedMapArrayAllDiscountsId) > 0) {
+                $processedStringAllDiscountsId = implode(",", $processedMapArrayAllDiscountsId);
+
+                if (isset($processedStringAllDiscountsId) && $processedStringAllDiscountsId && $processedStringAllDiscountsId != null && $processedStringAllDiscountsId != '' && $processedStringAllDiscountsId != ' ') {
+                    $dDiscountsMapsOutOfDiscounts = "DELETE FROM gk_prices_local WHERE id_krack NOT IN (".$processedStringAllDiscountsId.")";
+                    $rDiscountsMapsOutOfDiscounts = Db::getInstance()->execute($dDiscountsMapsOutOfDiscounts);
+
+                    $dProductsDiscountsOutOfKO = "DELETE FROM ps_specific_price WHERE id_specific_price NOT IN (SELECT id_local from gk_prices_local)";
+                    $rProductsDiscountsOutOfKO = Db::getInstance()->execute($dProductsDiscountsOutOfKO);
+
+                    return ["result_delete_maps" => $rDiscountsMapsOutOfDiscounts, "result_delete_discounts" => $rProductsDiscountsOutOfKO];
+                } else {
+                    return "No values in string after implode";
+                }
+            } else {
+                return "No discounts after map";
+            }
+        } else {
+            return "No discounts from KO";
+        }
+    }
+
+    // Evaluate if `price_under_min_allowed` column exists
+    private function _existsPriceUnderMinAllowedColumn() {
+        $columnExists = Db::getInstance()->executeS(
+            "SHOW COLUMNS FROM ". _DB_PREFIX_ ."product WHERE FIELD = 'price_under_min_allowed'"
+        );
+
+        return count($columnExists) > 0;
+    }
+
+    public function updateProductsMinPrice() {
+        $urlToGetProducts = WS_KRACKONLINE_URL . '/module/min_price_blocking/Api?action=get_products_under_min';
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_URL, $urlToGetProducts);
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 60);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 60);
+
+        $result = curl_exec($curl);
+        curl_close($curl);
+
+        $productsData = json_decode($result);
+
+        // Products with `price_under_min_allowed` = 1
+        if($productsData->data && $productsData->data->products) {
+            $krackProducts = $productsData->data->products;
+
+            // add `price_under_min_allowed` column to ps_product table
+            if( !self::_existsPriceUnderMinAllowedColumn() ) {
+                Db::getInstance()->execute(
+                    " ALTER TABLE `". _DB_PREFIX_ ."product`
+                      ADD COLUMN `price_under_min_allowed` TINYINT(1) DEFAULT 0
+                    "
+                );
+            }
+
+            // Get local products ids with the krack ids
+            $localProducts = Db::getInstance()->executeS(
+                " SELECT p.`id_product`, gk_p.`id_krack`
+                  FROM `". _DB_PREFIX_ ."product` p
+                  INNER JOIN `gk_products_local` gk_p
+                    ON gk_p.`id_local` = p.`id_product`
+                  WHERE gk_p.`id_krack` IN (". implode(',', $krackProducts) .")
+                "
+            );
+
+            $localProducts = array_map(
+                function($product) {
+                    $product = $product['id_product'];
+                    return $product;
+                },
+                $localProducts
+            );
+
+            Db::getInstance()->execute(
+                " UPDATE `". _DB_PREFIX_ ."product` 
+                  SET `price_under_min_allowed` = 0
+                  WHERE `id_product` NOT IN (". implode(',', $localProducts) .")
+                "
+            );
+
+            Db::getInstance()->execute(
+                " UPDATE `". _DB_PREFIX_ ."product` 
+                  SET `price_under_min_allowed` = 1
+                  WHERE `id_product` IN (". implode(',', $localProducts) .")   
+                "
+            );
+
+            return true;
+        }
+    }
+
+    public function addProductsBarcodes() {
+        $id_cart = Tools::getValue('id_cart', null);
+        $id_product = Tools::getValue('id_product', null);
+        $id_product_variation = Tools::getValue('id_product_variation', null);
+        $code_bar_right = Tools::getValue('code_bar_right', null);
+        $code_bar_left = Tools::getValue('code_bar_left', null);
+
+        if($id_cart !== null && $id_cart !== '' && $id_product !== null && $id_product !== '' && $id_product_variation !== null && $id_product_variation !== '') {
+            $product_reference = (($code_bar_left != null) ? substr($code_bar_left,2,6) : null);
+            $product_size = (($code_bar_left != null) ? substr($code_bar_left,8,2) : null);
+
+            $sql_barcode_validate = "SELECT COUNT(*) AS total 
+                                       FROM " . _DB_PREFIX_ . "product p INNER JOIN avelon_sizedomain azd
+                                         ON p.reference = azd.sizeDomain_id
+                                      WHERE p.reference = " . (int) $product_reference . "
+                                        AND (azd.size". (int) $product_size . "_label IS NOT NULL AND azd.size". (int) $product_size . "_label != '')";
+
+            $barcode_validate = Db::getInstance()->executeS($sql_barcode_validate);
+
+            if (true) {
+                $sql = "SELECT id, code_bar_left 
+                      FROM " . _DB_PREFIX_ . "special_products_coupon_barcode
+                     WHERE id_product = $id_product
+                       AND id_cart = $id_cart
+                       AND id_product_variation = $id_product_variation";
+
+                $products = Db::getInstance()->executeS($sql);
+
+                if(count($products) > 0 && $products[0]['code_bar_left'] === "") {
+                    if($code_bar_right !== null && $code_bar_right !== 'null' && $code_bar_right !== '') {
+                        $sql_update = "UPDATE " . _DB_PREFIX_ . "special_products_coupon_barcode
+                                      SET code_bar_right = '$code_bar_right'
+                                    WHERE id = " . $products[0]['id'];
+                    } else if ($code_bar_left !== null && $code_bar_left !== 'null' && $code_bar_left !== '') {
+                        $sql_update = "UPDATE " . _DB_PREFIX_ . "special_products_coupon_barcode
+                                      SET code_bar_left = '$code_bar_left'
+                                    WHERE id = " . $products[0]['id'];
+                    }
+
+                    Db::getInstance()->execute($sql_update);
+
+                } else {
+                    if($code_bar_right !== null && $code_bar_right !== 'null' && $code_bar_right !== '') {
+                        $sql_insert = "INSERT INTO " . _DB_PREFIX_ . "special_products_coupon_barcode (id_cart, id_product, id_product_variation, code_bar_right)
+                                        VALUES ($id_cart, $id_product, $id_product_variation,'$code_bar_right')";
+                    } else if ($code_bar_left !== null && $code_bar_left !== 'null' && $code_bar_left !== '') {
+                        $sql_insert = "INSERT INTO " . _DB_PREFIX_ . "special_products_coupon_barcode (id_cart, id_product, id_product_variation, code_bar_left)
+                                        VALUES ($id_cart, $id_product, $id_product_variation, '$code_bar_left')";
+                    }
+
+                    Db::getInstance()->execute($sql_insert);
+                }
+
+                return array(
+                    "error" => "0",
+                    "msg" => ""
+                );
+            } else {
+                return array(
+                    "error" => "1",
+                    "msg" => "No existe coincidencia para el codigo de barra ingresado"
+                );
+            }
+        } else {
+            return array(
+                "error" => "1",
+                "msg" => "Alguno de lo valores id_cart, id_product, id_product_variation es nulo o vacio"
+            );
+        }
+    }
+
+    public function deleteProductFromSpecialOrder() {
+        $id_special_product = Tools::getValue('id_special_product', null);
+
+        if($id_special_product !== null && $id_special_product !== '') {
+            $sql = "UPDATE " . _DB_PREFIX_ . "special_products_coupon_barcode
+                       SET status = 0
+                     WHERE id = $id_special_product";
+
+            Db::getInstance()->execute($sql);
+
+            return array(
+                "error" => "0",
+                "msg" => "Producto Eliminado Satisfactoriamente"
+            );
+        } else {
+            return array(
+                "error" => "1",
+                "msg" => "El valor id_special_product es nulo o vacio"
+            );
+        }
+    }
+}
+
+class MyFeature
+{
+    var $feature;
+    var $featureValue;
+
+    function MyFeature($feature, $featureValue)
+    {
+        $this->feature = $feature;
+        $this->featureValue = $featureValue;
+    }
+}
+
+class Reduction
+{
+    var $quantity;
+    var $type;
+    var $from;
+    var $to;
+    var $idProductAttribute;
+
+    function Reduction($quantity, $type, $from, $to, $idProductAttribute)
+    {
+        $this->quantity = $quantity;
+        $this->type = $type;
+        $this->from = $from;
+        $this->to = $to;
+        $this->idProductAttribute = $idProductAttribute;
+    }
+}
