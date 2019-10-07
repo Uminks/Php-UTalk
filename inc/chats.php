@@ -25,6 +25,7 @@
             <div class="inbox_msg">
 
               <div class="mesgs">
+                <div class="group-icon" style="display: none;" ><a href="#"> <img class="group-icon-chat" src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a></div>
                 <div class="msg_history">
                 </div>
               </div>

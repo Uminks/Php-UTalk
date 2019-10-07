@@ -1,5 +1,6 @@
 $(".sidebar-heading").height($(".bgCustomReverse").height() - 13);
 
+
 $(document).ready(function () {
     $("#text-chat").emojioneArea();
 

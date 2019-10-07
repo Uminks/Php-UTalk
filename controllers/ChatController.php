@@ -70,6 +70,8 @@ class ChatController {
         ];
 
         $response = Chat::sendMessageModel($data, "messages");
+
+        echo date("Y-m-d H:i:s");
     }
 
     private function getNewMessagesController () {
@@ -101,7 +103,11 @@ class ChatController {
     
             $response = Chat::sendMessageModel($data, "messages");
 
-            echo $url;
+            $response = [
+                'url' => $url,
+                'date' => date("Y-m-d H:i:s")
+            ];
+            echo json_encode($response);
         }
     }
 }

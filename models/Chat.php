@@ -92,7 +92,7 @@ class Chat extends Conexion {
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->execute();
 
-        $stmt = Conexion::conectar()->prepare("SELECT *, m.date AS date_message FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat");
+        $stmt = Conexion::conectar()->prepare("SELECT *, m.date AS date_message FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat ORDER BY m.id");
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
         $stmt->execute();
         
@@ -110,7 +110,7 @@ class Chat extends Conexion {
     }
 
     public static function getNewMessagesModel ($data, $tabla) {
-        $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat AND m.id_user != :id_user AND m.viewed = 0");
+        $stmt = Conexion::conectar()->prepare("SELECT *, m.date AS date_message FROM $tabla m INNER JOIN users u ON m.id_user = u.id WHERE m.id_chat = :id_chat AND m.id_user != :id_user AND m.viewed = 0");
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
         $stmt->execute();

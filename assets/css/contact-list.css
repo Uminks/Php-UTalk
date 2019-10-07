@@ -85,6 +85,14 @@
     margin-top: 65px;
 }
 
+.friend-state-details-minichat {
+    padding: 8px;
+    position: absolute;
+    border-radius: 50%;
+    margin-left: -15px;
+    margin-top: 30px;
+}
+
 .left-info {
     display: flex;
 }

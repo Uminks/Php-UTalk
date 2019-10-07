@@ -2,11 +2,16 @@ let newMessagesListener;
 let getChatsListener;
 
 function getChats (id = 'null') {
+
+
     $("#chats-index").empty();
     let _data = { 
         task: "get_chats", 
         id: id
     };
+
+    
+
     $.ajax({
 		url: "controllers/ChatController.php",
 		method: "GET",
@@ -16,19 +21,27 @@ function getChats (id = 'null') {
                 let data = JSON.parse(response);
                 data.map( (item) => {
                     let li = '<li onclick="loadMessages(' + item['id'] + ')">' +
-                                '<img src="assets/images/people2.png" alt="sunil">' +
+                                '<div class="friend-info-details">' +
+                                    '<img class="image-contact-details" src="assets/images/people2.png" alt="contact image">' +
+                                '<span class="friend-state-details-minichat"  style="background: ' + getColorStatus( item["status"] ) +';"></span>' +
+                                '</div>' +
                                 '<div class="content-chat">' +
                                 '<div class="info-content">' +
                                     '<h2 class="top-content"> ' + item["name"] + ' </h2>' +
-                                    '<span> ' + item["date"] + ' </span>' +
+                                    '<span> ' + moment.utc(new Date(item["date"]).toString()).locale('es').fromNow() + ' </span>' +
+                                    
                                 '</div>' +
                                 '<p class="message-content">' + item['last_message'] + '</p>' +
                                 '</div>' +  
                             '</li>';
                     $("#chats-index").append(li);
+                
+
                 });
-            } 
-		}
+            }
+        }
+        
+        
 	});
 }
 
@@ -48,16 +61,18 @@ function loadMessages ( id_chat ) {
 		method: "GET",
 		data: _data,
 		success: function(response){
+            $('.group-icon').css("display","block");
             let data = JSON.parse(response);
             let message;
 			data["messages"].map( (item) => {
                 let text;
+                let date = moment.utc(new Date(item["date_message"]).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a')
                 if ( data["current_user"] == item["id_user"] ) {
                     ( item["is_file"] == 0 ) ? text = item["message"]  : text = '<a target="_blank" href="/' + item["message"] + '">' + item["message"] + '</a>';
                     message =   '<div class="outgoing_msg">' +
                                     '<div class="sent_msg">' +
                                     '<p>' + text + '</p>' +
-                                    '<span class="time_date"> 11:01 AM    |    June 9</span>' +
+                                    '<span class="time_date">' + date + '</span>' +
                                     '</div>' +
                                 '</div>';
                 } 
@@ -68,14 +83,14 @@ function loadMessages ( id_chat ) {
                                     '<div class="received_msg">' +
                                     '<div class="received_withd_msg">' +
                                         '<p> ' + text+ ' </p>' +
-                                        '<span class="time_date"> 11:01 AM    |    June 9</span></div>' +
+                                        '<span class="time_date"> ' + date + ' </span></div>' +
                                     '</div>' +
                                 '</div>'
                 }
 
                 $('.msg_history').append(message);
             }); 
-            $(".msg_history").animate({ scrollTop: $(".msg_history").height() }, 1000);
+           $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
 		}
     });
     
@@ -107,13 +122,13 @@ $(".user-chat").submit( (e) => {
             let message =   '<div class="outgoing_msg">' +
                                 '<div class="sent_msg">' +
                                 '<p>' + _data.message + '</p>' +
-                                '<span class="time_date"> 11:01 AM    |    June 9</span>' +
+                                '<span class="time_date">' + moment.utc(new Date(response).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a') + '</span>' +
                                 '</div>' +
                             '</div>';
             $('.msg_history').append(message);
 
             $('.emojionearea-editor').html('');
-            $(".msg_history").animate({ scrollTop: $(".msg_history").height() }, 1000);
+            $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
 		}
 	});
 })
@@ -137,12 +152,12 @@ function loadNewMessages ( id_chat ) {
                                     '<div class="received_msg">' +
                                     '<div class="received_withd_msg">' +
                                         '<p> ' + text + ' </p>' +
-                                        '<span class="time_date"> 11:01 AM    |    June 9</span></div>' +
+                                        '<span class="time_date">' + moment.utc(new Date(item["date_message"]).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a') + '</span></div>' +
                                     '</div>' +
                                 '</div>'
                 
                 $('.msg_history').append(message);
-                $(".msg_history").animate({ scrollTop: $(".msg_history").height() }, 1000);
+                $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
             }); 
             
 		}
@@ -174,15 +189,15 @@ $('#upload').change( (e) => {
         contentType: false,
         processData: false,
 		success: function(response) {
-            console.log(response);
+            response = JSON.parse(response);
             let message =   '<div class="outgoing_msg">' +
                                 '<div class="sent_msg">' +
-                                '<p><a href="' + response + '" target="_blank">' + response + '</p>' +
-                                '<span class="time_date"> 11:01 AM    |    June 9</span>' +
+                                '<p><a href="' + response['url'] + '" target="_blank">' + response['url'] + '</p>' +
+                                '<span class="time_date">' + moment.utc(new Date(response["date"]).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a') + '</span>' +
                                 '</div>' +
                             '</div>';
             $('.msg_history').append(message);
-            $(".msg_history").animate({ scrollTop: $(".msg_history").height() }, 1000);
-}
+            $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
+        }
     });
 })
