@@ -72,12 +72,13 @@ CREATE TABLE `messages` (
   `message` text COLLATE utf8_unicode_ci,
   `date` datetime DEFAULT NULL,
   `viewed` int(11) DEFAULT '0',
+  `is_file` int(11) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `id_user` (`id_user`),
   KEY `id_chat` (`id_chat`),
   CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`id_user`) REFERENCES `users` (`id`),
   CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`id_chat`) REFERENCES `chats` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 /*Table structure for table `users` */
 
