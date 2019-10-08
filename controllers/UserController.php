@@ -18,6 +18,7 @@ class UserController {
     const DELETE_FRIEND_REQUEST = "delete_friend_request";
     const GET_CONTACTS = "get_contacts";
     const GET_CONTACT_DETAILS = "get_contact_details";
+    const DELETE_CONTACT = "delete_contact";
 
     public function initContent ( $task ) {
 
@@ -74,6 +75,9 @@ class UserController {
             case self::GET_CONTACT_DETAILS : {
                 echo json_encode( $this->getContactDetails() );
                 break;
+            }
+            case self::DELETE_CONTACT : {
+                $this->deleteContactController();
             }
         }
     }
@@ -215,6 +219,13 @@ class UserController {
         session_start();
         $data = [ "username" => $_GET["username"]];
         $response = User::getContactDetails($data, "users");
+        return $response;
+    }
+
+    private function deleteContactController () {
+        session_start();
+        $data = [ "id" => $_SESSION["user_information"]["id"],  "id_user" => $_POST["id_user"] ];
+        $response = User::deleteContactModel($data, "friends");
         return $response;
     }
 }

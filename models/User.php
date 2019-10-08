@@ -192,10 +192,25 @@ class User extends Conexion {
     # OBTENIENDO CONTACTOS
     #-------------------------------------
     public static function gerContactsModel($data, $tabla){
-        $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla u INNER JOIN friends f ON  u.id = f.id_user_friend WHERE f.id_user = :id");
+        $stmt = Conexion::conectar()->prepare("SELECT * FROM $tabla u INNER JOIN friends f ON  u.id = f.id_user_friend WHERE f.id_user = :id ORDER BY u.connection_status");
         $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
         $stmt->execute();
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    # ELIMINAR CONTACTOS 
+    #------------------------------------
+    public static function deleteContactModel ($data, $tabla) {
+        $stmt = Conexion::conectar()->prepare("DELETE FROM $tabla WHERE id_user = :id AND id_user_friend = :id_user");
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
+        $stmt->execute();
+
+        $stmt = Conexion::conectar()->prepare("UPDATE $tabla SET friendship_status = 0 WHERE id_user = :id_user AND id_user_friend = :id");
+        $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+        $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
+
+        $stmt->execute();
     }
 }

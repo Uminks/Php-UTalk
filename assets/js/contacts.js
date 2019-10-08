@@ -141,7 +141,7 @@ $('a[href^="#contactos"]').click( (e) => {
             let data = JSON.parse(response);
 			data.map( (item) => {
 
-                if(item["friendship_status"] == 0){
+                if(item["friendship_status"] == '0'){
                     item["connection_status"] = "3";
                 }
 
@@ -156,7 +156,7 @@ $('a[href^="#contactos"]').click( (e) => {
                             '<div class="options-contact">' + ((!disabledMessage(item["connection_status"])) ? 
                                 '<a class="newMessage" data-id="'+ item["id"] +'"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' : "") +       
                                 '<a class="friendDetails" onclick="friendDetails(\''+  item["username"] +'\',event)" href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
-                                '<a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg" title="Eliminar contacto" alt="Eliminar"> </a>' +
+                                '<a class="deleteFriend" href="#" onclick="deleteContact(' + item["id"] + ')"> <img src="assets/svg/delete-friend.svg" title="Eliminar contacto" alt="Eliminar"> </a>' +
                             '</div>' +
                         '</li>';
 
@@ -167,15 +167,12 @@ $('a[href^="#contactos"]').click( (e) => {
             //Eliminar Contactos animacion
             $('.deleteFriend').on('click', function(e){
                 e.preventDefault();
-                
-                var el = $(this).closest('.contact');
 
                 let id = el.attr("data-id");
           
                 $("#confirmDelete").modal('show');
 
                 $("#modal-btn-si").on("click", function(){
-                    cuteHide(el);
                     $("#confirmDelete").modal('hide');
                 });
 
@@ -200,6 +197,22 @@ $('a[href^="#contactos"]').click( (e) => {
     });
 
 })
+
+
+function deleteContact ( id ) {
+    let _data = { 
+        id_user: id
+    };
+    $.ajax({
+        url: "controllers/UserController.php?task=delete_contact",
+        method: "POST",
+        data: _data,
+        success: function(response) {
+            //console.log(response);
+            $('a[href^="#contactos"]').click();
+        }
+    });
+}
 
 function getColorStatus (status) {
     switch(status){

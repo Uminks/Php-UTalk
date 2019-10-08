@@ -13,7 +13,7 @@ class Chat extends Conexion {
             
             $to_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if ( !in_array( [ "id_user" => $data["id_to_user"] ] , $to_users) ) {
+            if ( !in_array( [ "id_user" => $data["id_to_user"] ] , $to_users) || count( $to_users ) > 1 ) {
                 $name = "No Channel";
                 $stmt = Conexion::conectar()->prepare("INSERT INTO chats (name, id_user_1, id_user_2) VALUES (:name, :id_user_1, :id_user_2)");
                 $stmt->bindParam(":name", $name, PDO::PARAM_STR);
@@ -65,7 +65,18 @@ class Chat extends Conexion {
 
                 $name = $stmt->fetch(PDO::FETCH_ASSOC);
                 
-                $status = $name["connection_status"];
+                $stmt = Conexion::conectar()->prepare("SELECT friendship_status FROM friends WHERE id_user = :id AND id_user_friend = $id AND friendship_status = 0");
+                $stmt->bindParam(":id", $data["id"], PDO::PARAM_INT);
+                $stmt->execute();
+                $f_status = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ( count($f_status["friendship_status"] ) > 0 && $f_status["friendship_status"] == 0 ) {
+                    $status = "3";
+                }
+                else {
+                    $status = $name["connection_status"];
+                }
+                
                 $name = $name["first_name"] . ' ' . $name["last_name"];
             }
             else {
