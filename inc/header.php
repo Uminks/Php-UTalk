@@ -47,12 +47,6 @@
                   <img class="addImage" src="assets/images/people2.png"
                     class="rounded-circle z-depth-1-half avatar-pic" alt="example placeholder avatar">
                 </div>
-                <div class="d-flex justify-content-center">
-                  <div class="btn btn-mdb-color btn-rounded float-left">
-                    <span>Foto de perfil</span>
-                    <input type="file">
-                  </div>
-                </div>
               </div>
 
               <div class="form-group">

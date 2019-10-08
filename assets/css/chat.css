@@ -282,6 +282,10 @@ img {
     margin: 8px 0;
 }
 
+.add-user-to-chat input {
+    margin: 1em 0;
+}
+
 .message-content br {
     display: none;
 }

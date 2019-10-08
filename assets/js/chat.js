@@ -53,8 +53,10 @@ function loadMessages ( id_chat, status ) {
         clearInterval(newMessagesListener);
     }
 
-    if(status == 2 || status == 3){
+    if(status == 3){
         $('.emojionearea-editor').attr("contenteditable","false");
+    }else {
+        $('.emojionearea-editor').attr("contenteditable","true");
     }
 
     $('.msg_history').empty();
@@ -89,6 +91,7 @@ function loadMessages ( id_chat, status ) {
                     message =   '<div class="incoming_msg">' +
                                     '<div class="incoming_msg_img"> <img src="assets/images/people2.png" alt="sunil"> </div>' +
                                     '<div class="received_msg">' +
+                                    '<span class="time_date" style="font-size:14px; margin-top: 10px;"> ' + item["username"] + ' </span></div>' +
                                     '<div class="received_withd_msg">' +
                                         '<p> ' + text+ ' </p>' +
                                         '<span class="time_date"> ' + date + ' </span></div>' +
@@ -138,6 +141,7 @@ $(".user-chat").submit( (e) => {
 
             $('.emojionearea-editor').html('');
             $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
+            getChats();
 		}
 	});
 })
@@ -229,7 +233,9 @@ $(".add-user-to-chat").submit( (e) => {
 		method: "POST",
         data: data,
 		success: function(response) {
-            console.log(response);
+            let htmlAlert2 = '<div class="alert alert-success">Usuario agregado con exito.</div>';
+            $("#success-message2").append(htmlAlert2).hide();
+            $("#success-message2").first().hide().fadeIn(200).delay(2000).fadeOut(1000, function () { $('#success-message').hide(); });
             getChats();
         }
     });

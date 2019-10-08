@@ -46,6 +46,7 @@
                             <input id="add-user" type="text" class="form-control" placeholder="Ingresar usuario a agregar">
                             <input id="add-channel" type="text" class="form-control" placeholder="Nombre de canal">
                             <button style="margin: 1.5em 0;" type="submit" class="btn btn-primary" > Agregar </button>
+                            <div id="success-message2"></div>
                         </form>
                     </div>
                   </div>
