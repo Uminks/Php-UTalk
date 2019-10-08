@@ -100,9 +100,6 @@ class Chat extends Conexion {
     }
 
     public static function sendMessageModel ($data, $tabla) {
-
-        
-        print_r( $data["message"]);
         $stmt = Conexion::conectar()->prepare("INSERT INTO messages (id_user, id_chat, message, date, is_file) VALUES (:id_user, :id_chat, :message, :date, :is_file)");
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
@@ -126,6 +123,31 @@ class Chat extends Conexion {
         $stmt->execute();
 
         return $response;
+    }
+
+    public static function addUserToChatModel ($data, $tabla) {
+        $name = $data["name_user"];
+        $stmt = Conexion::conectar()->prepare("SELECT u.id FROM users u INNER JOIN users_chat uc ON  u.id != uc.id_user WHERE u.username = '$name' LIMIT 1");
+        $stmt->execute();
+
+        $response = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ( count($response["id"]) > 0 ) {
+            
+            $stmt = Conexion::conectar()->prepare("INSERT INTO users_chat (id_user, id_chat) VALUES (:id_user, :id_chat)");
+            $stmt->bindParam(":id_user", $response["id"], PDO::PARAM_INT);
+            $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = Conexion::conectar()->prepare("UPDATE chats SET channel = 1, name = :name WHERE id = :id_chat");
+            $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);
+            $stmt->bindParam(":name", $data["channel_name"], PDO::PARAM_STR);
+            $stmt->execute();
+
+            echo "success";
+        }
+
+        echo "error";
     }
 
 }

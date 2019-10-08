@@ -9,6 +9,7 @@ class ChatController {
     const SEND_MESSAGE = "send_message";
     const GET_NEW_MESSAGES = "get_new_messages";
     const UPLOAD_FILE = "upload_file";
+    const ADD_USER = "add_users_to_chat";
 
     public function initContent ( $task ) { 
         $option = $_GET["task"];
@@ -33,6 +34,9 @@ class ChatController {
             case self::UPLOAD_FILE : {
                 $this->uploadFileController();
                 break;
+            }
+            case self::ADD_USER : {
+                $this->addUserToChatController ();
             }
         }
     }
@@ -109,6 +113,18 @@ class ChatController {
             ];
             echo json_encode($response);
         }
+    }
+
+    private function addUserToChatController () {
+        $data = [
+            "id_chat" => $_POST["id_chat"],
+            "name_user" => $_POST["name_user"],
+            "channel_name" => $_POST["channel_name"]
+        ];
+
+        $response = Chat::addUserToChatModel ($data, "users_chat");
+        
+        return $response;
     }
 }
 

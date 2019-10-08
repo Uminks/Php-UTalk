@@ -42,9 +42,10 @@
                   </div>
                   <div class="modal-body">
                     <div class="status-list">
-                        <form action="">
-                            <input id="add-contact" type="text" class="form-control" placeholder="Ingresar usuario a agregar">
-                            <button style="margin: 1.5em 0;" type="button" class="btn btn-primary" > Agregar </button>
+                        <form method="post" class="add-user-to-chat">
+                            <input id="add-user" type="text" class="form-control" placeholder="Ingresar usuario a agregar">
+                            <input id="add-channel" type="text" class="form-control" placeholder="Nombre de canal">
+                            <button style="margin: 1.5em 0;" type="submit" class="btn btn-primary" > Agregar </button>
                         </form>
                     </div>
                   </div>

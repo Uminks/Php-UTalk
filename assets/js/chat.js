@@ -72,8 +72,6 @@ function loadMessages ( id_chat, status ) {
             $('.group-icon').css("display","block");
             let data = JSON.parse(response);
             let message;
-
-            console.log(data);
 			data["messages"].map( (item) => {
                 let text;
                 let date = moment.utc(new Date(item["date_message"]).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a')
@@ -209,6 +207,30 @@ $('#upload').change( (e) => {
                             '</div>';
             $('.msg_history').append(message);
             $(".msg_history").animate({ scrollTop: $(".msg_history").height()*1000000 }, 1000);
+        }
+    });
+})
+
+
+$(".add-user-to-chat").submit( (e) => {
+    e.preventDefault();
+
+    let id_chat = $('.user-chat').data("id");
+    let name_user = $("#add-user").val();
+    let channel_name = $("#add-channel").val();
+
+    let data = {
+        id_chat: id_chat,
+        name_user: name_user,
+        channel_name: channel_name
+    }
+    $.ajax({
+		url: "controllers/ChatController.php?task=add_users_to_chat",
+		method: "POST",
+        data: data,
+		success: function(response) {
+            console.log(response);
+            getChats();
         }
     });
 })
