@@ -140,6 +140,11 @@ $('a[href^="#contactos"]').click( (e) => {
 
             let data = JSON.parse(response);
 			data.map( (item) => {
+
+                if(item["friendship_status"] == 0){
+                    item["connection_status"] = "3";
+                }
+
                 let li = '<li data-id="'+item["id"]+'" class="contact">' +
                             '<div class="left-info">' +
                                 '<div class="friend-info">' +
