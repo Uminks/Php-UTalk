@@ -100,6 +100,9 @@ class Chat extends Conexion {
     }
 
     public static function sendMessageModel ($data, $tabla) {
+
+        
+        print_r( $data["message"]);
         $stmt = Conexion::conectar()->prepare("INSERT INTO messages (id_user, id_chat, message, date, is_file) VALUES (:id_user, :id_chat, :message, :date, :is_file)");
         $stmt->bindParam(":id_user", $data["id_user"], PDO::PARAM_INT);
         $stmt->bindParam(":id_chat", $data["id_chat"], PDO::PARAM_INT);

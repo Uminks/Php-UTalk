@@ -282,6 +282,14 @@ img {
     margin: 8px 0;
 }
 
+.message-content br {
+    display: none;
+}
+
+.message-content img {
+    width: 20px !important;
+}
+
 .list li img {
     width: 45px;
     border-radius: 50%;

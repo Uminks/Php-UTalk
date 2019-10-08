@@ -25,10 +25,32 @@
             <div class="inbox_msg">
 
               <div class="mesgs">
-                <div class="group-icon" style="display: none;" ><a href="#"> <img class="group-icon-chat" src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a></div>
+                <div class="group-icon"  data-toggle="modal" data-target="#add-group" style="display: none;" ><a href="#"> <img class="group-icon-chat" src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a></div>
                 <div class="msg_history">
                 </div>
               </div>
+
+              <!-- Modal para actualizar el estado -->
+            <div class="modal fade" id="add-group" tabindex="-2" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Agregar contacto al chat</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="status-list">
+                        <form action="">
+                            <input id="add-contact" type="text" class="form-control" placeholder="Ingresar usuario a agregar">
+                            <button style="margin: 1.5em 0;" type="button" class="btn btn-primary" > Agregar </button>
+                        </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             </div>
 

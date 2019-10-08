@@ -19,8 +19,9 @@ function getChats (id = 'null') {
 		success:function(response){
             if ( response != "false" ) {
                 let data = JSON.parse(response);
+
                 data.map( (item) => {
-                    let li = '<li onclick="loadMessages(' + item['id'] + ')">' +
+                    let li = '<li onclick="loadMessages(' + item['id'] + ','+ item["status"] +')">' +
                                 '<div class="friend-info-details">' +
                                     '<img class="image-contact-details" src="assets/images/people2.png" alt="contact image">' +
                                 '<span class="friend-state-details-minichat"  style="background: ' + getColorStatus( item["status"] ) +';"></span>' +
@@ -35,7 +36,8 @@ function getChats (id = 'null') {
                                 '</div>' +  
                             '</li>';
                     $("#chats-index").append(li);
-                
+                    
+
 
                 });
             }
@@ -45,17 +47,23 @@ function getChats (id = 'null') {
 	});
 }
 
-function loadMessages ( id_chat ) {
+function loadMessages ( id_chat, status ) {
     
     if ( typeof newMessagesListener !== 'undefined' ) {
         clearInterval(newMessagesListener);
     }
+
+    if(status == 2 || status == 3){
+        $('.emojionearea-editor').attr("contenteditable","false");
+    }
+
     $('.msg_history').empty();
     let _data = { 
         task: "get_all_messages",
         id_chat: id_chat
     };
     $('.user-chat').data("id", id_chat);
+
     $.ajax({
 		url: "controllers/ChatController.php",
 		method: "GET",
@@ -64,6 +72,8 @@ function loadMessages ( id_chat ) {
             $('.group-icon').css("display","block");
             let data = JSON.parse(response);
             let message;
+
+            console.log(data);
 			data["messages"].map( (item) => {
                 let text;
                 let date = moment.utc(new Date(item["date_message"]).toString()).locale('es').format('MMMM Do YYYY | h:mm:ss a')
@@ -109,6 +119,7 @@ $(".user-chat").submit( (e) => {
     else {
         msg = $('.text-chat').val();
     }
+
 
     let _data = {
         message: msg,
