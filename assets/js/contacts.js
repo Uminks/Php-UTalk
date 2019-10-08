@@ -140,23 +140,23 @@ $('a[href^="#contactos"]').click( (e) => {
 
             let data = JSON.parse(response);
 			data.map( (item) => {
-                let li = '<li class="contact">' +
+                let li = '<li data-id="'+item["id"]+'" class="contact">' +
                             '<div class="left-info">' +
                                 '<div class="friend-info">' +
                                     '<img class="image-contact" src="assets/images/people2.png" alt="contact image">' +
-                                    '<span class="friend-state" style="background: ' + getColorStatus( item["connection_status"] ) +';"></span>' +
+                                    '<span class="friend-state"  style="background: ' + getColorStatus( item["connection_status"] ) +';"></span>' +
                                 '</div>' +
                                 '<h2 class="title-contact"> ' + item["first_name"] + ' ' + item["last_name"] + ' <span class="user-contact">('+ item["username"] +')</span></h2>' +
                             '</div>' +
-                            '<div class="options-contact">' +
-                                '<a class="newMessage" data-id="'+ item["id"] +'"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' +
-                                '<a href="#"> <img src="assets/svg/invite-group.svg" title="Invitar grupo" alt="Invitar a grupo"> </a>' +
+                            '<div class="options-contact">' + ((!disabledMessage(item["connection_status"])) ? 
+                                '<a class="newMessage" data-id="'+ item["id"] +'"> <img src="assets/svg/new-message.svg" title="Nuevo mensaje" alt="Enviar mensaje"> </a>' : "") +       
                                 '<a class="friendDetails" onclick="friendDetails(\''+  item["username"] +'\',event)" href="#"> <img src="assets/svg/detail-friend.svg" title="Detalles del contacto" alt="Ver detalles"> </a>' +
                                 '<a class="deleteFriend" href="#"> <img src="assets/svg/delete-friend.svg" title="Eliminar contacto" alt="Eliminar"> </a>' +
                             '</div>' +
                         '</li>';
 
                 $("#ul-contacts").append(li);
+
             });
 
             //Eliminar Contactos animacion
@@ -164,6 +164,9 @@ $('a[href^="#contactos"]').click( (e) => {
                 e.preventDefault();
                 
                 var el = $(this).closest('.contact');
+
+                let id = el.attr("data-id");
+          
                 $("#confirmDelete").modal('show');
 
                 $("#modal-btn-si").on("click", function(){
@@ -208,4 +211,11 @@ function getColorStatus (status) {
             return 'lightgray';
         }
     }
+}
+
+function disabledMessage(status){
+    if(status == 3) {
+        return true;
+    }
+    return false;
 }

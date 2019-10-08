@@ -286,6 +286,11 @@ img {
     margin: 1em 0;
 }
 
+
+.newMessage{
+    cursor: pointer;
+}
+
 .message-content br {
     display: none;
 }
